@@ -24,7 +24,7 @@ jobs:
       - run: npm run android:sync
         env:
           NEXT_PUBLIC_API_BASE: ${{ vars.API_BASE }}
-      - run: ./gradlew assembleDebug
+      - run: chmod +x gradlew && ./gradlew assembleDebug
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
