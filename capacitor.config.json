@@ -1,0 +1,7 @@
+{
+  "appId": "com.wimoron.astropulse",
+  "appName": "AstroPulse",
+  "webDir": "out",
+  "backgroundColor": "#050506",
+  "server": { "androidScheme": "https" }
+}

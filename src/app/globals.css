@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #050506;
+  --surface: #0b0b0e;
+  --surface2: #131318;
+  --border: #26262d;
+  --text: #eef3ff;
+  --muted: #b3c0da;
+  --accent: #ffffff;
+  --warn: #f59e0b;
+  --bad: #ff6b6b;
+  --good: #4ade80;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-good: var(--good);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-heading: 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html,
+body {
+  background-color: var(--bg);
+  
+  color: var(--text);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255,255,255,.55), rgba(255,255,255,.25));
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255,255,255,.55), rgba(255,255,255,.25));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 22px;
+  width: 22px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: #fff;
+  border: 0;
+  box-shadow: 0 0 0 5px rgba(103, 232, 249, 0.28), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+input[type="range"]::-moz-range-thumb {
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 0;
+  box-shadow: 0 0 0 5px rgba(103, 232, 249, 0.28), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(125, 244, 255, 0.28);
+  color: #fff;
+}
+
+.font-heading {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, .display {
+  font-family: 'Montserrat', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+h3 { font-weight: 600; letter-spacing: -0.01em; }
+.eyebrow {
+  font-family: 'Montserrat', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8b8b96;
+}
+
+/* Numbers and code stay in a steady typeface so they line up. */
+code, .font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ---------- Design system: black, flat, one white accent ---------- */
+.starfield {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,.8), transparent),
+    radial-gradient(1px 1px at 28% 62%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1px 1px at 44% 24%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1px 1px at 63% 78%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1px 1px at 81% 36%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1px 1px at 92% 84%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1px 1px at 5% 88%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1px 1px at 70% 8%, rgba(255,255,255,.5), transparent);
+  background-size: 420px 420px, 530px 530px, 610px 610px, 380px 380px, 700px 700px, 460px 460px, 560px 560px, 640px 640px;
+}
+.rise { opacity: 0; animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+/* Surfaces: solid, hairline border. */
+.glass, .panel {
+  position: relative;
+  background: #0a0a0d;
+  border: 1px solid rgba(255,255,255,.10);
+}
+.glass-in { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.09); }
+.glass-bar { background: rgba(5,5,6,.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,.08); }
+.glass-bar.solid { background: #050506; }
+
+/* Buttons: small, uppercase, square-ish. */
+.pill, .pill-primary {
+  border-radius: 8px;
+  font-family: 'Montserrat', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background .2s, border-color .2s, color .2s, transform .15s;
+}
+.pill { border: 1px solid rgba(255,255,255,.22); background: transparent; color: #fff; }
+.pill:hover:not(:disabled):not([aria-pressed='true']):not([aria-current='page']) { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.5); }
+.pill:active:not(:disabled) { transform: scale(.98); }
+.pill[aria-pressed='true'], .pill[aria-current='page'] { background: #fff; color: #050506; border-color: #fff; }
+.pill-primary { background: #fff; color: #050506; border: 1px solid #fff; }
+.pill-primary:hover:not(:disabled) { background: #e8e8ee; }
+.pill-primary:active:not(:disabled) { transform: scale(.98); }
+.pill-primary:disabled { opacity: .35; }
+
+.orbit-ring { animation: spin 60s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.card-lift { transition: border-color .3s, transform .3s; }
+.card-lift:hover { border-color: rgba(255,255,255,.3); }
+.hide-scroll { scrollbar-width: none; }
+.hide-scroll::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rise, .orbit-ring { animation: none; opacity: 1; }
+  .card-lift, .pill, .pill-primary { transition: none; }
+}
