@@ -137,7 +137,7 @@ const CAP: Record<Method, string> = {
 export function Diagram({ method, caption = true, bare = false }: { method: Method; caption?: boolean; bare?: boolean }) {
   const star = <circle cx="100" cy="80" r="26" fill="#fde68a" />;
   return (
-    <figure className={bare ? 'w-full' : 'w-full max-w-[280px]'}>
+    <figure className={bare ? 'w-full' : 'mx-auto w-full max-w-[280px] max-sm:max-w-[200px]'}>
     <svg viewBox="0 0 200 160" className="h-auto w-full" role="img" aria-label={`Animated picture of the ${METHODS[method].name} method`}>
       <rect width="200" height="160" rx="14" fill={bare ? 'none' : '#04070f'} stroke={bare ? 'none' : 'rgba(255,255,255,0.08)'} />
       {method === 'transit' ? (

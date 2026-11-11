@@ -1,4 +1,4 @@
-import { API } from './api';
+import { API, NO_SERVER } from './api';
 import type { HostRec } from './hosts';
 import { isValidCurve } from './catalog';
 import type { LightCurve } from './types';
@@ -47,6 +47,10 @@ export async function loadCatalog(force = false): Promise<CatalogState> {
   if (!force && saved && Date.now() - saved.at < DAY) {
     return { hosts: saved.hosts, source: 'saved', updated: saved.at, fresh: [] };
   }
+  if (NO_SERVER) {
+    const r = await fetch('sky/hosts.json');
+    return { hosts: (await r.json()) as HostRec[], source: 'sample', updated: 0, fresh: [] };
+  }
   try {
     const r = await fetch(`${API}/api/catalog`, { signal: AbortSignal.timeout(60000) });
     const j = (await r.json().catch(() => ({}))) as { hosts?: HostRec[]; generated?: number; error?: string };
@@ -65,6 +69,7 @@ export async function loadCatalog(force = false): Promise<CatalogState> {
 
 /** Real TESS or Kepler data for the star, or null if there is none (or no server). */
 export async function loadRealCurve(ra: number, dec: number): Promise<LightCurve | null> {
+  if (NO_SERVER) return null;
   try {
     const r = await fetch(`${API}/api/lightcurve?ra=${ra}&dec=${dec}`, { signal: AbortSignal.timeout(90000) });
     if (!r.ok) return null;

@@ -10,7 +10,7 @@ renameSync(api, aside);
 let code = 1;
 try {
   rmSync('.next', { recursive: true, force: true });
-  code = spawnSync('npx', ['next', 'build'], { stdio: 'inherit', env: { ...process.env, STATIC_EXPORT: '1' } }).status ?? 1;
+  code = spawnSync('npx', ['next', 'build'], { stdio: 'inherit', env: { ...process.env, STATIC_EXPORT: '1', NEXT_PUBLIC_STATIC: '1' } }).status ?? 1;
 } finally {
   renameSync(aside, api);
   rmSync('.next', { recursive: true, force: true });

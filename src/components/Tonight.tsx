@@ -147,12 +147,12 @@ export function Tonight(p: {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-12">
       <div className="eyebrow">Tonight</div>
-      <h1 className="mt-2 text-3xl text-white md:text-5xl">What can you observe<br className="hidden md:block" /> from {place.name}?</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[#b4b4be]">Pick where you are and what you are using. AstroPulse lists the stars with known planets that are high enough in the sky, and the planet transits you could catch. {p.live ? '' : 'Transit times need the live NASA list, which is not loaded right now.'}</p>
+      <h1 className="mt-2 text-2xl text-white md:text-5xl">What can you observe<br className="hidden md:block" /> from {place.name}?</h1>
+      <p className="mt-4 hidden max-w-2xl text-[15px] sm:block leading-relaxed text-[#b4b4be]">Pick where you are and what you are using. AstroPulse lists the stars with known planets that are high enough in the sky, and the planet transits you could catch. {p.live ? '' : 'Transit times need the live NASA list, which is not loaded right now.'}</p>
 
       <section className="panel mt-7 rounded-xl p-4 md:p-5" aria-label="Where and with what">
-        <div className="grid gap-3 md:grid-cols-4">
-          <label className="block">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <label className="col-span-2 block md:col-span-1">
             <span className="eyebrow">Where</span>
             <select
               className={`${sel} mt-1.5`}
@@ -179,7 +179,7 @@ export function Tonight(p: {
               {[0, 1, 2, 3, 4, 5, 6].map((d) => (<option key={d} value={d}>{d === 0 ? 'Tonight' : d === 1 ? 'Tomorrow night' : `In ${d} nights`}</option>))}
             </select>
           </label>
-          <div className="flex items-end">
+          <div className="col-span-2 flex items-end md:col-span-1">
             <button type="button" onClick={locate} className="pill min-h-11 w-full px-4">Use my location</button>
           </div>
         </div>

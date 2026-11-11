@@ -72,16 +72,16 @@ export function Catalog(p: {
   const sel = 'min-h-11 rounded-full border border-white/25 bg-[#0b1220] px-3 text-sm text-white';
   const when = p.status.updated ? new Date(p.status.updated).toLocaleString() : '';
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 md:px-8">
+    <div className="mx-auto max-w-6xl px-4 pb-8 pt-5 md:px-8 md:pb-24 md:pt-6">
       <div className="eyebrow">Star catalog</div>
-      <h1 className="mt-1 text-3xl text-white md:text-5xl">Every known planet host.</h1>
-      <p className="mt-2 max-w-2xl text-[#c9d5ee]">
+      <h1 className="mt-1 text-2xl text-white md:text-5xl">Every known planet host.</h1>
+      <p className="mt-2 hidden max-w-2xl text-[#c9d5ee] sm:block">
         {p.status.source === 'live' ? 'Live from the NASA Exoplanet Archive' : p.status.source === 'saved' ? 'Saved copy of the NASA Exoplanet Archive' : 'Small built-in sample (NASA could not be reached)'}
         {when ? `, updated ${when}` : ''}.{p.status.error ? ` Reason: ${p.status.error}.` : ''} Search, filter, sort, then open a star to study it.
       </p>
 
-      <div className="glass mt-6 rounded-xl p-3 md:p-4"><div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,200px))]">
-        <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setShown(60); }} placeholder={`Search ${p.hosts.length.toLocaleString()} stars…`} aria-label="Search stars" className={`${sel} w-full placeholder:text-[#8da0c4]`} />
+      <div className="glass mt-4 rounded-xl p-3 md:mt-6 md:p-4"><div className="grid grid-cols-2 gap-2 md:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,200px))]">
+        <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setShown(60); }} placeholder={`Search ${p.hosts.length.toLocaleString()} stars…`} aria-label="Search stars" className={`${sel} col-span-2 w-full placeholder:text-[#8da0c4] md:col-span-1`} />
         <select value={method} onChange={(e) => setMethod(e.target.value as typeof method)} className={sel} aria-label="Method">
           <option value="all">All methods</option>
           {(Object.keys(METHODS) as Method[]).map((m) => (<option key={m} value={m}>{METHODS[m].short}: {METHODS[m].name.split(' (')[0]}</option>))}
@@ -109,7 +109,23 @@ export function Catalog(p: {
         </div>
         </div></div>
 
-      <div className="glass mt-4 overflow-x-auto rounded-xl">
+      <ul className="mt-4 grid gap-2 md:hidden" aria-label="Stars">
+        {rows.slice(0, shown).map((h) => (
+          <li key={`m-${h.n}-${h.pl}`} className="panel rounded-xl p-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-white">{h.n} <span className="font-normal text-[#9fb0d4]">{h.pl}</span>{p.fresh.has(h.n) ? <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[#050506]">NEW</span> : null}</div>
+                <div className="mt-1 font-mono text-xs text-[#9fb0d4]">{h.y || '–'} · {fmt(h.d, 0)} ly · {fmt(h.p)} d orbit</div>
+              </div>
+              {h.t === 'other' ? <span className="shrink-0 text-xs text-[#c9d5ee]">{h.om ?? 'Other'}</span> : <span className="shrink-0 rounded px-2 py-0.5 text-[11px] font-semibold text-[#050506]" style={{ background: METHODS[h.t].color }}>{METHODS[h.t].short}</span>}
+            </div>
+            <div className="mt-3">{p.canOpen(h) ? <button type="button" className="pill min-h-11 w-full" onClick={() => p.onOpen(h)}>Open →</button> : <span className="text-xs text-[#8da0c4]">No lab yet</span>}</div>
+          </li>
+        ))}
+        {rows.length === 0 ? <li className="p-6 text-center text-[#c9d5ee]">No star matches. Try fewer filters.</li> : null}
+      </ul>
+
+      <div className="glass mt-4 hidden overflow-x-auto rounded-xl md:block">
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead>
             <tr className="border-b border-white/10 text-[#9fb0d4]">

@@ -54,6 +54,8 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
   useEffect(() => {
     targetsRef.current = filter === 'all' ? targets : targets.filter((t) => t.method === filter);
     featuredIds.current = new Set(featured.map((f) => f.id));
+    // Brightest first, so the stars that stay visible when zoomed out are the easy ones to see.
+    ordered.current = [...targetsRef.current].sort((a, b) => (featuredIds.current.has(a.id) ? 0 : 1) - (featuredIds.current.has(b.id) ? 0 : 1) || a.magnitude - b.magnitude);
   }, [targets, featured, filter]);
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -62,10 +64,12 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
   const vecs = useRef<Float32Array>(new Float32Array(0));
   const fly = useRef<null | { t0: number; dur: number; from: { ra: number; dec: number; fov: number }; to: { ra: number; dec: number; fov: number } }>(null);
   const hover = useRef<string | null>(null);
+  const ordered = useRef<SkyTarget[]>([]);
+  const shown = useRef<Array<{ t: SkyTarget; x: number; y: number; n: number }>>([]);
   const sel = useRef<string | null>(selectedId);
   const [readout, setReadout] = useState('');
   const [showLines, setShowLines] = useState(true);
-  const [showNames, setShowNames] = useState(true);
+  const [showNames, setShowNames] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640);
   const linesRef = useRef(true);
   const namesRef = useRef(true);
   useEffect(() => {
@@ -121,31 +125,14 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
     const pts = new Map<number, { x: number; y: number }>();
     let moved = 0;
     let pinch = 0;
-    const project = (ra: number, dec: number) => {
-      const v = view.current;
-      const { w, h } = size.current;
-      const [x, y, z] = vec(ra, dec);
-      const c0 = vec(v.ra, v.dec);
-      const d = x * c0[0] + y * c0[1] + z * c0[2];
-      if (d < -0.98) return null;
-      const lam = v.ra * D2R;
-      const phi = v.dec * D2R;
-      const e: [number, number, number] = [-Math.sin(lam), Math.cos(lam), 0];
-      const n: [number, number, number] = [-Math.sin(phi) * Math.cos(lam), -Math.sin(phi) * Math.sin(lam), Math.cos(phi)];
-      const k = 2 / (1 + d);
-      const scale = Math.min(w, h) / 2 / (2 * Math.tan((v.fov * D2R) / 4));
-      return { x: w / 2 - scale * k * (x * e[0] + y * e[1] + z * e[2]), y: h / 2 - scale * k * (x * n[0] + y * n[1] + z * n[2]) };
-    };
-    const hit = (px: number, py: number): SkyTarget | null => {
-      let best: SkyTarget | null = null;
-      let bd = 20;
-      for (const t of targetsRef.current) {
-        const p = project(t.ra, t.dec);
-        if (!p) continue;
-        const d = Math.hypot(p.x - px, p.y - py);
+    const hit = (px: number, py: number): { t: SkyTarget; n: number; x: number; y: number } | null => {
+      let best: { t: SkyTarget; n: number; x: number; y: number } | null = null;
+      let bd = size.current.w < 640 ? 26 : 18;
+      for (const m of shown.current) {
+        const d = Math.hypot(m.x - px, m.y - py);
         if (d < bd) {
           bd = d;
-          best = t;
+          best = m;
         }
       }
       return best;
@@ -164,7 +151,7 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
       const prev = pts.get(e.pointerId);
       if (!prev) {
         const h = hit(e.offsetX, e.offsetY);
-        hover.current = h ? h.id : null;
+        hover.current = h ? h.t.id : null;
         c.style.cursor = h ? 'pointer' : 'grab';
         return;
       }
@@ -192,8 +179,12 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
       pts.delete(e.pointerId);
       pinch = 0;
       if (wasTap) {
-        const t = hit(e.offsetX, e.offsetY);
-        if (t) onSelect(t.id);
+        const m = hit(e.offsetX, e.offsetY);
+        if (m && m.n > 0 && view.current.fov > 6) {
+          // Several stars share this spot: zoom in so they spread out.
+          const v = view.current;
+          fly.current = { t0: performance.now(), dur: 700, from: { ...v }, to: { ra: m.t.ra, dec: m.t.dec, fov: Math.max(4, v.fov * 0.35) } };
+        } else if (m) onSelect(m.t.id);
       }
     };
     const wheel = (e: WheelEvent) => {
@@ -280,7 +271,8 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
       }
 
       // Stars.
-      const limit = v.fov > 100 ? 5.4 : v.fov > 60 ? 6.0 : v.fov > 30 ? 6.8 : v.fov > 12 ? 7.4 : 7.7;
+      const lim0 = v.fov > 100 ? 5.4 : v.fov > 60 ? 6.0 : v.fov > 30 ? 6.8 : v.fov > 12 ? 7.4 : 7.7;
+      const limit = w < 640 ? lim0 - 1.1 : lim0;
       const boost = Math.min(2.2, 0.8 + 40 / Math.max(8, v.fov));
       const a = vecs.current;
       for (let i = 0; i < stars.length; i++) {
@@ -303,10 +295,11 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
       }
       ctx.globalAlpha = 1;
 
+      const phone0 = w < 640;
       // Constellation names.
       if (linesRef.current && v.fov > 22) {
         ctx.font = '600 11px system-ui, sans-serif';
-        ctx.fillStyle = 'rgba(150,180,240,0.55)';
+        ctx.fillStyle = phone0 ? 'rgba(150,180,240,0.3)' : 'rgba(150,180,240,0.55)';
         ctx.textAlign = 'center';
         for (const con of constellations) {
           if (!con.label) continue;
@@ -317,12 +310,40 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
         ctx.textAlign = 'left';
       }
 
-      // Target markers.
+      // Target markers, thinned so every dot has room around it.
       const pulse = reduce ? 0.5 : (Math.sin(now / 420) + 1) / 2;
-      for (const t of targetsRef.current) {
+      const phone = w < 640;
+      const gap = phone ? 44 : 28;
+      const cells = new Map<string, number>();
+      const out: Array<{ t: SkyTarget; x: number; y: number; n: number }> = [];
+      const consider = (t: SkyTarget, force: boolean) => {
         const q = vec(t.ra, t.dec);
         const s = proj(q[0], q[1], q[2]);
-        if (!s || s[0] < -40 || s[0] > w + 40 || s[1] < -40 || s[1] > h + 40) continue;
+        if (!s || s[0] < -20 || s[0] > w + 20 || s[1] < -20 || s[1] > h + 20) return;
+        const cx = Math.floor(s[0] / gap);
+        const cy = Math.floor(s[1] / gap);
+        if (!force) {
+          for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+              const k = cells.get(`${cx + dx},${cy + dy}`);
+              if (k === undefined) continue;
+              const o = out[k]!;
+              if (Math.hypot(o.x - s[0], o.y - s[1]) < gap) {
+                o.n += 1;
+                return;
+              }
+            }
+          }
+        }
+        cells.set(`${cx},${cy}`, out.length);
+        out.push({ t, x: s[0], y: s[1], n: 0 });
+      };
+      const selT = sel.current ? targetsRef.current.find((t) => t.id === sel.current) : undefined;
+      if (selT) consider(selT, true);
+      for (const t of ordered.current) if (t.id !== sel.current) consider(t, featuredIds.current.has(t.id));
+      shown.current = out;
+      for (const m of out) {
+        const t = m.t;
         const isSel = sel.current === t.id;
         const isHover = hover.current === t.id;
         const isFeat = featuredIds.current.has(t.id);
@@ -332,30 +353,34 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
           ctx.strokeStyle = isSel ? '#fff' : col;
           ctx.lineWidth = isSel ? 1.5 : 1;
           ctx.beginPath();
-          ctx.arc(s[0], s[1], 9 + (isSel || isHover ? 2 : 0), 0, 6.2832);
+          ctx.arc(m.x, m.y, 10 + (isSel || isHover ? 2 : 0), 0, 6.2832);
           ctx.stroke();
           if (isSel) {
             ctx.globalAlpha = 0.5 * (1 - pulse);
             ctx.beginPath();
-            ctx.arc(s[0], s[1], 14 + pulse * 12, 0, 6.2832);
+            ctx.arc(m.x, m.y, 15 + pulse * 12, 0, 6.2832);
             ctx.stroke();
             ctx.globalAlpha = 1;
           }
         }
-        // Everyone else is a small dot, coloured by method.
         ctx.fillStyle = col;
-        ctx.globalAlpha = big ? 1 : 0.85;
+        ctx.globalAlpha = big ? 1 : 0.9;
         ctx.beginPath();
-        ctx.arc(s[0], s[1], big ? 3.2 : v.fov < 20 ? 3 : 2.2, 0, 6.2832);
+        ctx.arc(m.x, m.y, big ? 4 : phone ? 3.6 : 3, 0, 6.2832);
         ctx.fill();
         ctx.globalAlpha = 1;
-        // Label chip: featured, selected, hovered, or any star once zoomed in.
-        if (!(big || v.fov < 12)) continue;
+        if (m.n >= 3 && !isSel) {
+          // A crowd: say roughly how many more are hiding here. Tap to zoom in.
+          ctx.font = '600 10px Inter, system-ui, sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.fillText(`+${m.n}`, m.x + 8, m.y + 3.5);
+        }
+        if (!(big || v.fov < (phone ? 7 : 12))) continue;
         ctx.font = '600 12px Montserrat, Inter, system-ui, sans-serif';
         const label = t.name;
         const tw = ctx.measureText(label).width;
-        const lx = s[0] + 16;
-        const ly = s[1] - 4;
+        const lx = Math.min(m.x + 16, w - tw - 14);
+        const ly = m.y - 4;
         ctx.fillStyle = 'rgba(5,5,6,0.92)';
         ctx.fillRect(lx - 6, ly - 14, tw + 12, 22);
         ctx.strokeStyle = isSel ? '#fff' : 'rgba(255,255,255,0.25)';
@@ -404,7 +429,7 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
               value={query}
               onChange={(e) => { setQuery(e.target.value); setListOpen(true); }}
               onFocus={() => setListOpen(true)}
-              placeholder={`Search ${targets.length.toLocaleString()} stars you can practise on…`}
+              placeholder={`Search ${targets.length.toLocaleString()} stars…`}
               aria-label="Search stars"
               className="min-h-11 w-full glass-in rounded-xl px-3 text-sm text-white placeholder:text-[#8da0c4]"
             />
@@ -414,11 +439,9 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
                   {m === 'all' ? 'All' : METHODS[m].short}
                 </button>
               ))}
-            </div>
-            <div className="hide-scroll mt-2 flex gap-1.5 overflow-x-auto sm:hidden" role="group" aria-label="Map options and good first stars">
-              <button type="button" aria-pressed={showLines} onClick={() => setShowLines((x) => !x)} className="pill min-h-9 shrink-0 px-3 !text-[11px]">Constellations</button>
-              <button type="button" aria-pressed={showNames} onClick={() => setShowNames((x) => !x)} className="pill min-h-9 shrink-0 px-3 !text-[11px]">Names</button>
-              {featured.map((t) => (<button key={t.id} type="button" onClick={() => onSelect(t.id)} className="pill min-h-9 shrink-0 px-3 !text-[11px]">{t.name}</button>))}
+              <span className="mx-1 w-px shrink-0 bg-white/15 sm:hidden" aria-hidden="true" />
+              <button type="button" aria-pressed={showLines} onClick={() => setShowLines((x) => !x)} className="pill min-h-9 shrink-0 px-3 text-xs sm:hidden">Lines</button>
+              <button type="button" aria-pressed={showNames} onClick={() => setShowNames((x) => !x)} className="pill min-h-9 shrink-0 px-3 text-xs sm:hidden">Names</button>
             </div>
             {listOpen ? (
               <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-72 overflow-y-auto panel rounded-xl shadow-2xl" role="listbox" aria-label="Matching stars">
@@ -464,9 +487,9 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
                     <span className="rounded bg-[#3a2a10] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#fcd34d]">Practice data</span>
                   )}
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-[#d5def5]">{selected.tagline}.</p>
+                <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-[#d5def5] sm:line-clamp-none">{selected.tagline}.</p>
                 {selected.planet ? (
-                  <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/10 text-sm">
+                  <dl className="mt-3 hidden grid-cols-2 gap-px sm:grid overflow-hidden rounded-xl bg-white/10 text-sm">
                     {([
                       ['Distance', selected.planet.distLy != null ? `${Math.round(selected.planet.distLy).toLocaleString()} ly` : '—'],
                       ['Orbit', selected.planet.periodDays != null ? `${+selected.planet.periodDays.toFixed(2)} days` : '—'],
@@ -482,6 +505,10 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
                 </button>
               </div>
             ) : (
+              <>
+              <div className="hide-scroll flex gap-2 overflow-x-auto md:hidden" role="group" aria-label="Good first stars">
+                {featured.map((t) => (<button key={t.id} type="button" onClick={() => onSelect(t.id)} className="pill min-h-11 shrink-0 bg-black/70 px-4 backdrop-blur">{t.name}</button>))}
+              </div>
               <div className="hidden panel rounded-xl p-4 md:block">
                 <div className="eyebrow">How to use the map</div>
                 <ol className="mt-2 space-y-1.5 text-sm text-[#c9d5ee]">
@@ -499,6 +526,7 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
                   ))}
                 </div>
               </div>
+              </>
             )}
           </aside>
         </div>

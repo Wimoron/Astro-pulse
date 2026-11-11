@@ -48,6 +48,7 @@ export default function App() {
   const [extra, setExtra] = useState<SkyTarget[]>([]);
   const [noData, setNoData] = useState<Set<string>>(new Set());
   const [finding, setFinding] = useState(false);
+  const [menu, setMenu] = useState(false);
   const [uploaded, setUploaded] = useState<Target | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -214,11 +215,11 @@ export default function App() {
 
   return (
     <div className="flex h-[100dvh] flex-col">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 glass-bar relative z-20 px-3 py-2 md:px-5">
+      <header className="glass-bar relative z-20 flex shrink-0 items-center gap-x-3 gap-y-2 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] md:px-5">
         <button type="button" onClick={() => setView('learn')} className="mr-3 font-[family-name:var(--font-heading)] text-[15px] font-extrabold uppercase leading-none tracking-[0.2em] text-white" aria-label="AstroPulse, home">
           Astro<span className="text-[#ff7a45]">Pulse</span>
         </button>
-        <nav aria-label="Where you are" className="hide-scroll flex max-w-full gap-1 overflow-x-auto">
+        <nav aria-label="Where you are" className="hide-scroll hidden max-w-full gap-1 overflow-x-auto md:flex">
           {nav.map(([v, label]) => {
             const disabled = (v === 'scope' || v === 'lab') && (!sky || (v === 'scope' && !isTransit));
             const current = view === v || (v === 'lab' && view === 'method');
@@ -236,7 +237,11 @@ export default function App() {
             );
           })}
         </nav>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 md:hidden">
+          <button type="button" onClick={() => setFinding(true)} className="min-h-10 pill px-3.5">Find a star</button>
+          <button type="button" onClick={() => setMenu(true)} className="min-h-10 min-w-10 pill px-3" aria-label="More options" aria-haspopup="dialog">⋯</button>
+        </div>
+        <div className="ml-auto hidden flex-wrap items-center gap-2 md:flex">
           <div role="group" aria-label="Difficulty of explanations" className="flex overflow-hidden rounded-lg border border-white/22">
             {(['beginner', 'expert'] as Mode[]).map((m) => (
               <button
@@ -329,6 +334,32 @@ export default function App() {
           </div>
         )}
       </main>
+      <nav aria-label="Main" className="glass-bar relative z-20 grid shrink-0 grid-cols-5 border-t border-white/10 pb-[env(safe-area-inset-bottom)] md:hidden">
+        {([['learn', 'Learn', 'M12 3 2 8l10 5 10-5-10-5Zm-6 9v4c0 1.5 2.7 3 6 3s6-1.5 6-3v-4'], ['sky', 'Sky', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4 1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7Z'], ['catalog', 'Catalog', 'M4 6h16M4 12h16M4 18h16'], ['tonight', 'Tonight', 'M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z'], ['study', 'Study', 'M3 19 9 5l3 8 3-4 6 10H3Z']] as const).map(([v, label, d]) => {
+          const current = v === 'study' ? view === 'scope' || view === 'lab' || view === 'method' : view === v;
+          return (
+            <button key={v} type="button" aria-current={current ? 'page' : undefined} onClick={() => (v === 'study' ? (sky ? setView(isTransit ? 'scope' : 'method') : setView('sky')) : go(v))} className={`flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${current ? 'text-white' : 'text-[#8a8a96]'}`}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={current ? 2.2 : 1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+              {label}
+            </button>
+          );
+        })}
+      </nav>
+      {menu ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70 md:hidden" role="dialog" aria-modal="true" aria-label="More options" onClick={(e) => e.target === e.currentTarget && setMenu(false)}>
+          <div className="panel w-full rounded-t-2xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+            <div className="eyebrow">Explanations</div>
+            <div role="group" aria-label="Difficulty of explanations" className="mt-2 grid grid-cols-2 gap-2">
+              {(['beginner', 'expert'] as Mode[]).map((m) => (<button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className="pill min-h-12">{m}</button>))}
+            </div>
+            <div className="mt-4 grid gap-2">
+              <button type="button" className="pill min-h-12" onClick={() => { setMenu(false); fileRef.current?.click(); }}>Use my own data</button>
+              <button type="button" className="pill min-h-12" onClick={() => { share(); setMenu(false); }}>{copied ? 'Link copied' : 'Share this view'}</button>
+              <button type="button" className="pill min-h-12" onClick={() => setMenu(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

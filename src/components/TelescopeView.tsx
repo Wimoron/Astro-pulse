@@ -219,9 +219,10 @@ export function TelescopeView({ target, curve, real, stars, onBack, onOpenLab }:
     <div className="flex h-full min-h-0 flex-col bg-black">
       <div ref={wrap} className="relative min-h-0 flex-1">
         <canvas ref={canvas} role="img" aria-label={`Telescope view of ${target.name}`} className="absolute inset-0 h-full w-full" />
-        <div className="absolute left-3 top-3 max-w-[280px] glass rounded-xl p-3 text-sm text-[#e6edff]">
-          <div className="text-base font-semibold text-white">{target.name}</div>
-          <div className="mt-1 font-mono text-[11px] leading-5 text-[#b3c0da]">
+        <div className="absolute left-3 top-3 max-w-[calc(100%-6.75rem)] glass rounded-xl p-2.5 text-sm text-[#e6edff] sm:max-w-[280px] sm:p-3">
+          <div className="truncate text-base font-semibold text-white">{target.name}</div>
+          <div className="font-mono text-[11px] text-[#b3c0da] sm:hidden">{target.magnitude} mag{target.constellation ? ` · ${target.constellation}` : ''}</div>
+          <div className="mt-1 hidden font-mono text-[11px] leading-5 text-[#b3c0da] sm:block">
             RA {fmtRa(target.ra)}
             <br />
             Dec {fmtDec(target.dec)}
@@ -232,9 +233,10 @@ export function TelescopeView({ target, curve, real, stars, onBack, onOpenLab }:
         <button
           type="button"
           onClick={onBack}
-          className="absolute right-3 top-3 min-h-11 pill px-4 text-sm font-medium text-white"
+          className="absolute right-3 top-3 min-h-11 pill bg-black/70 px-3 text-sm font-medium text-white sm:px-4"
+          aria-label="Back to the sky"
         >
-          ← Back to the sky
+          ← <span className="hidden sm:inline">Back to the sky</span><span className="sm:hidden">Sky</span>
         </button>
       </div>
 
