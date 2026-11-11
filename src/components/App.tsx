@@ -238,7 +238,7 @@ export default function App() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2 md:hidden">
-          <button type="button" onClick={() => setFinding(true)} className="min-h-10 pill px-3.5">Find a star</button>
+          <button type="button" onClick={() => setFinding(true)} className="min-h-10 pill bg-[#1c1c22] px-3.5 font-heading text-[11px] font-bold uppercase tracking-[0.1em]">Find a star</button>
           <button type="button" onClick={() => setMenu(true)} className="min-h-10 min-w-10 pill px-3" aria-label="More options" aria-haspopup="dialog">⋯</button>
         </div>
         <div className="ml-auto hidden flex-wrap items-center gap-2 md:flex">

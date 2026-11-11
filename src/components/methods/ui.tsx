@@ -79,46 +79,51 @@ export function Shell(p: { method: Method; heading: string; steps: StepDef[]; on
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div ref={body} className="min-h-0 flex-1 overflow-y-auto">
-      <div className="border-b border-white/10 bg-[#050506] px-3 pb-3 pt-3 md:px-5">
-        <div className="mx-auto flex max-w-5xl flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={p.onBack} className={BTN2}>← Back</button>
-            <div className="min-w-[55%] flex-1">
-              <div className="eyebrow" style={{ color: METHODS[p.method].color }}>{METHODS[p.method].name}</div>
-              <h2 className="text-xl text-white">{p.heading}</h2>
-            </div>
-            {p.picker}
+      <div className="bg-[#050506] px-4 pb-2 pt-3 md:px-5">
+        <div className="mx-auto flex max-w-5xl flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" onClick={p.onBack} className="flex min-h-10 items-center gap-2 font-heading text-xs font-bold uppercase tracking-[0.1em] text-white">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6" /></svg>Exit lab
+            </button>
+            <span className="chip min-w-0 max-w-[62%]" style={{ ['--c' as string]: METHODS[p.method].color }}><span className="truncate">{METHODS[p.method].short} lab · {p.heading}</span></span>
           </div>
-          <ol className="hide-scroll flex gap-2 overflow-x-auto" aria-label="Steps">
+          {p.picker ? <div>{p.picker}</div> : null}
+          <ol className="flex items-center" aria-label="Steps">
             {p.steps.map((s, k) => (
-              <li key={s.title} className="shrink-0">
+              <li key={s.title} className={`flex items-center ${k < p.steps.length - 1 ? 'flex-1' : ''}`}>
                 <button
                   type="button"
                   disabled={k > i}
                   aria-current={k === i ? 'step' : undefined}
+                  aria-label={`Step ${k + 1}: ${s.title}`}
                   onClick={() => setI(k)}
-                  className={`min-h-10 px-3 pill ${k === i ? '' : k < i ? '' : 'opacity-40'}`}
-                  aria-pressed={k === i}
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-full font-heading text-sm font-bold ${k === i ? 'bg-white text-[#050506]' : k < i ? 'bg-[#1c1c22] text-[#67e8f9]' : 'bg-[#14141a] text-[#8a8a96]'}`}
                 >
-                  {k + 1}. {s.title}
+                  {k < i ? (<svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>) : k + 1}
                 </button>
+                {k < p.steps.length - 1 ? <span className={`mx-1.5 h-px flex-1 ${k < i ? 'bg-white/40' : 'bg-white/12'}`} aria-hidden="true" /> : null}
               </li>
             ))}
           </ol>
-          <div className="glass rounded-xl p-3 text-sm text-[#eef3ff]"><span className="font-semibold text-white">Your job: </span>{st.job}</div>
+          <div className="panel rounded-xl p-4">
+            <div className="font-heading text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: METHODS[p.method].color }}>Step {i + 1} of {p.steps.length} · {st.title}</div>
+            <p className="mt-2 text-[17px] leading-snug text-white">{st.job}</p>
+          </div>
         </div>
       </div>
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-3 py-4 md:px-5">{st.body}</div>
       </div>
       <div className="shrink-0 border-t border-white/10 bg-[#050506] px-3 py-3">
-        <div className="mx-auto flex max-w-5xl items-center gap-3">
-          <button type="button" className={BTN2} disabled={i === 0} onClick={() => setI(i - 1)}>← Back</button>
-          <div className="min-w-0 flex-1 text-xs text-[#b3c0da]">{!st.ok && st.locked ? st.locked : `Step ${i + 1} of ${p.steps.length}`}</div>
+        <div className="mx-auto flex max-w-5xl flex-col gap-2">
+          {!st.ok && st.locked ? <p className="text-center text-xs text-[#fbbf24]" role="status">{st.locked}</p> : null}
+          <div className="flex items-center gap-3">
+          <button type="button" className="pill min-h-12 shrink-0 bg-[#1c1c22] px-4" disabled={i === 0} onClick={() => setI(i - 1)}>← Back</button>
           {last ? (
-            <button type="button" className={BTN1} onClick={p.onBack}>Finish</button>
+            <button type="button" className="pill-primary min-h-12 min-w-0 flex-1 px-4" onClick={p.onBack}>Finish</button>
           ) : (
-            <button type="button" className={BTN1} disabled={!st.ok} onClick={() => setI(i + 1)}>Next →</button>
+            <button type="button" className="pill-primary min-h-12 min-w-0 flex-1 px-4" disabled={!st.ok} onClick={() => setI(i + 1)}><span className="truncate">Next: {p.steps[i + 1]!.title} →</span></button>
           )}
+          </div>
         </div>
       </div>
     </div>

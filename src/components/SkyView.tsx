@@ -431,11 +431,11 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
               onFocus={() => setListOpen(true)}
               placeholder={`Search ${targets.length.toLocaleString()} stars…`}
               aria-label="Search stars"
-              className="min-h-11 w-full glass-in rounded-xl px-3 text-sm text-white placeholder:text-[#8da0c4]"
+              className="min-h-12 w-full rounded-lg border border-white/15 bg-[#0a0a0d] px-3.5 text-sm text-white placeholder:text-[#8a8a96] focus:border-white focus:outline-none"
             />
             <div className="hide-scroll mt-2 flex gap-1.5 overflow-x-auto" role="group" aria-label="Show only stars found by one method">
               {(['all', 'transit', 'rv', 'imaging', 'microlensing', 'astrometry'] as const).map((m) => (
-                <button key={m} type="button" aria-pressed={filter === m} onClick={() => { setFilter(m); setListOpen(false); }} className="pill min-h-9 shrink-0 px-3.5 text-xs font-semibold">
+                <button key={m} type="button" aria-pressed={filter === m} onClick={() => { setFilter(m); setListOpen(false); }} className={m === 'all' || filter === m ? 'pill min-h-9 shrink-0 px-3.5 text-xs font-semibold' : 'chip min-h-9 shrink-0 !h-9 px-3.5 text-xs'} style={m === 'all' ? undefined : ({ ['--c' as string]: METHODS[m].color })}>
                   {m === 'all' ? 'All' : METHODS[m].short}
                 </button>
               ))}
@@ -466,18 +466,19 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
           <div className="pointer-events-none hidden self-end font-mono text-[11px] text-[#8da0c4] md:block">{readout}</div>
 
           {/* right column (desktop) / bottom sheet (mobile) */}
-          <aside className="pointer-events-auto flex max-h-full w-full flex-col md:w-[340px] md:self-start md:overflow-y-auto" aria-label={selected ? `Details for ${selected.name}` : 'Where to start'}>
+          <aside className="pointer-events-auto -mx-3 -mb-3 flex max-h-full w-[calc(100%+1.5rem)] flex-col md:mx-0 md:mb-0 md:w-[340px] md:self-start md:overflow-y-auto" aria-label={selected ? `Details for ${selected.name}` : 'Where to start'}>
             {selected ? (
-              <div className="panel rounded-xl p-4">
+              <div className="panel rounded-b-none rounded-t-2xl border-b-0 p-4 pb-5 md:rounded-xl md:border-b md:pb-4">
+                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 md:hidden" aria-hidden="true" />
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="eyebrow">{selected.constellation ? `in ${selected.constellation}` : distanceWords(selected.planet?.distLy)}</div>
-                    <h2 className="mt-1 truncate text-2xl leading-tight text-white">{selected.name}</h2>
+                    <h2 className="mt-1 truncate text-[26px] leading-tight text-white">{selected.name}</h2>
                   </div>
                   <button type="button" onClick={() => onSelect('')} aria-label="Close details" className="pill grid h-9 w-9 shrink-0 place-items-center text-lg leading-none">×</button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  <span className="rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#050506]" style={{ background: METHODS[selected.method].color }}>{METHODS[selected.method].name}</span>
+                  <span className="chip" style={{ ['--c' as string]: METHODS[selected.method].color }}>{METHODS[selected.method].short}</span>
                   <span className="rounded bg-white/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#d4d4dc]">{difficultyLabel(selected.difficulty)}</span>
                   {isTransit ? (
                     <span className={`rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${realIds.has(selected.id) ? 'bg-[#14532d] text-[#bbf7d0]' : checking === selected.id ? 'bg-white/10 text-[#dbe5ff]' : 'bg-[#4a3410] text-[#fde68a]'}`}>
@@ -489,25 +490,26 @@ export function SkyView({ stars, constellations, selectedId, onSelect, onOpenTel
                 </div>
                 <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-[#d5def5] sm:line-clamp-none">{selected.tagline}.</p>
                 {selected.planet ? (
-                  <dl className="mt-3 hidden grid-cols-2 gap-px sm:grid overflow-hidden rounded-xl bg-white/10 text-sm">
+                  <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
                     {([
                       ['Distance', selected.planet.distLy != null ? `${Math.round(selected.planet.distLy).toLocaleString()} ly` : '—'],
                       ['Orbit', selected.planet.periodDays != null ? `${+selected.planet.periodDays.toFixed(2)} days` : '—'],
                       ['Size', selected.planet.radiusEarth != null ? `${+selected.planet.radiusEarth.toFixed(1)} × Earth` : selected.planet.massJup != null ? `${+selected.planet.massJup.toFixed(2)} Jupiters` : '—'],
                       ['Found', selected.planet.year ? String(selected.planet.year) : '—'],
                     ] as const).map(([k, v]) => (
-                      <div key={k} className="bg-[#0a0a0d] px-3 py-2"><dt className="eyebrow">{k}</dt><dd className="mt-0.5 font-medium text-white">{v}</dd></div>
+                      <div key={k} className="cell"><dt className="k">{k}</dt><dd className="v">{v}</dd></div>
                     ))}
                   </dl>
                 ) : null}
                 <button type="button" onClick={() => (isTransit ? onOpenTelescope(selected.id) : onStudy(selected.id))} className="pill-primary mt-4 min-h-12 w-full px-5">
-                  {isTransit ? 'Look through the telescope →' : `Practice the ${METHODS[selected.method].short.toLowerCase()} method →`}
+                  {isTransit ? 'Study this star →' : `Practise the ${METHODS[selected.method].short.toLowerCase()} method →`}
                 </button>
               </div>
             ) : (
               <>
-              <div className="hide-scroll flex gap-2 overflow-x-auto md:hidden" role="group" aria-label="Good first stars">
-                {featured.map((t) => (<button key={t.id} type="button" onClick={() => onSelect(t.id)} className="pill min-h-11 shrink-0 bg-black/70 px-4 backdrop-blur">{t.name}</button>))}
+              <div className="eyebrow mb-2 px-4 md:hidden">Recommended targets</div>
+              <div className="hide-scroll mb-3 flex gap-2 overflow-x-auto px-3 md:hidden" role="group" aria-label="Good first stars">
+                {featured.map((t) => (<button key={t.id} type="button" onClick={() => onSelect(t.id)} className="pill min-h-11 shrink-0 bg-[#0a0a0d] px-4">{t.name}</button>))}
               </div>
               <div className="hidden panel rounded-xl p-4 md:block">
                 <div className="eyebrow">How to use the map</div>

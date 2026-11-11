@@ -69,11 +69,11 @@ export function Catalog(p: {
     URL.revokeObjectURL(url);
   };
 
-  const sel = 'min-h-11 rounded-full border border-white/25 bg-[#0b1220] px-3 text-sm text-white';
+  const sel = 'min-h-12 rounded-lg border border-white/15 bg-[#0a0a0d] px-3 text-sm text-white focus:border-white focus:outline-none';
   const when = p.status.updated ? new Date(p.status.updated).toLocaleString() : '';
   return (
     <div className="mx-auto max-w-6xl px-4 pb-8 pt-5 md:px-8 md:pb-24 md:pt-6">
-      <div className="eyebrow">Star catalog</div>
+      <div className="eyebrow flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${p.status.source === 'live' ? 'bg-emerald-500' : 'bg-[#fbbf24]'}`} />NASA Exoplanet Archive · {p.status.source === 'live' ? 'live' : 'saved copy'}</div>
       <h1 className="mt-1 text-2xl text-white md:text-5xl">Every known planet host.</h1>
       <p className="mt-2 hidden max-w-2xl text-[#c9d5ee] sm:block">
         {p.status.source === 'live' ? 'Live from the NASA Exoplanet Archive' : p.status.source === 'saved' ? 'Saved copy of the NASA Exoplanet Archive' : 'Small built-in sample (NASA could not be reached)'}
@@ -109,20 +109,26 @@ export function Catalog(p: {
         </div>
         </div></div>
 
-      <ul className="mt-4 grid gap-2 md:hidden" aria-label="Stars">
+      <ul className="mt-4 grid gap-3 md:hidden" aria-label="Stars">
         {rows.slice(0, shown).map((h) => (
-          <li key={`m-${h.n}-${h.pl}`} className="panel rounded-xl p-3.5">
+          <li key={`m-${h.n}-${h.pl}`} className="panel rounded-xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate font-semibold text-white">{h.n} <span className="font-normal text-[#9fb0d4]">{h.pl}</span>{p.fresh.has(h.n) ? <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[#050506]">NEW</span> : null}</div>
-                <div className="mt-1 font-mono text-xs text-[#9fb0d4]">{h.y || '–'} · {fmt(h.d, 0)} ly · {fmt(h.p)} d orbit</div>
+                <div className="truncate font-heading text-xl font-bold text-white">{h.n} <span className="font-medium text-[#8a8a96]">{h.pl}</span></div>
+                <div className="mt-1 font-mono text-xs text-[#8a8a96]">{h.y || '–'} · {fmt(h.d, 0)} ly · {fmt(h.p)} d orbit{p.fresh.has(h.n) ? ' · NEW' : ''}</div>
               </div>
-              {h.t === 'other' ? <span className="shrink-0 text-xs text-[#c9d5ee]">{h.om ?? 'Other'}</span> : <span className="shrink-0 rounded px-2 py-0.5 text-[11px] font-semibold text-[#050506]" style={{ background: METHODS[h.t].color }}>{METHODS[h.t].short}</span>}
+              {h.t === 'other' ? <span className="chip plain shrink-0" style={{ ['--c' as string]: '#b4b4be' }}>{h.om ?? 'Other'}</span> : <span className="chip shrink-0" style={{ ['--c' as string]: METHODS[h.t].color }}>{METHODS[h.t].short}</span>}
             </div>
-            <div className="mt-3">{p.canOpen(h) ? <button type="button" className="pill min-h-11 w-full" onClick={() => p.onOpen(h)}>Open →</button> : <span className="text-xs text-[#8da0c4]">No lab yet</span>}</div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="cell"><div className="k">Size</div><div className="v !text-[13px]">{h.r != null ? `${fmt(h.r)} R⊕` : h.mj != null ? `${fmt(h.mj)} Mj` : '–'}</div></div>
+              <div className="cell"><div className="k">Orbit</div><div className="v !text-[13px]">{h.p != null ? `${fmt(h.p)} d` : '–'}</div></div>
+              <div className="cell"><div className="k">Planets</div><div className="v !text-[13px]">{h.np ?? '–'}</div></div>
+            </div>
+            <div className="mt-3">{p.canOpen(h) ? <button type="button" className="pill-primary min-h-12 w-full" onClick={() => p.onOpen(h)}>Open lab →</button> : <div className="grid min-h-12 w-full place-items-center rounded-lg border border-dashed border-white/20 font-heading text-xs font-bold uppercase tracking-[0.1em] text-[#8a8a96]">No lab yet</div>}</div>
           </li>
         ))}
         {rows.length === 0 ? <li className="p-6 text-center text-[#c9d5ee]">No star matches. Try fewer filters.</li> : null}
+        {rows.length > shown ? <li><button type="button" className="pill min-h-12 w-full" onClick={() => setShown((n) => n + 60)}>Load more ({Math.min(shown, rows.length)} of {rows.length.toLocaleString()})</button></li> : null}
       </ul>
 
       <div className="glass mt-4 hidden overflow-x-auto rounded-xl md:block">
@@ -166,7 +172,7 @@ export function Catalog(p: {
         {rows.length === 0 ? <p className="p-6 text-center text-[#c9d5ee]">No star matches. Try fewer filters.</p> : null}
       </div>
       {rows.length > shown ? (
-        <div className="mt-4 text-center"><button type="button" className="pill min-h-11 px-6 font-semibold" onClick={() => setShown((s) => s + 100)}>Show 100 more ({(rows.length - shown).toLocaleString()} left)</button></div>
+        <div className="mt-4 hidden text-center md:block"><button type="button" className="pill min-h-11 px-6 font-semibold" onClick={() => setShown((s) => s + 100)}>Show 100 more ({(rows.length - shown).toLocaleString()} left)</button></div>
       ) : null}
     </div>
   );

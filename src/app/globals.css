@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "@fontsource-variable/montserrat";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
 
 :root {
   --bg: #050506;
@@ -24,9 +27,9 @@
   --color-warn: var(--warn);
   --color-bad: var(--bad);
   --color-good: var(--good);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-heading: 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-heading: 'Montserrat Variable', 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 html,
@@ -34,7 +37,7 @@ body {
   background-color: var(--bg);
   
   color: var(--text);
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -90,13 +93,13 @@ select:focus-visible {
 }
 
 .font-heading {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
 h1, h2, h3, .display {
-  font-family: 'Montserrat', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Montserrat Variable', 'Montserrat', 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   font-style: normal;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -104,7 +107,7 @@ h1, h2, h3, .display {
 }
 h3 { font-weight: 600; letter-spacing: -0.01em; }
 .eyebrow {
-  font-family: 'Montserrat', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Montserrat Variable', 'Montserrat', 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -114,7 +117,7 @@ h3 { font-weight: 600; letter-spacing: -0.01em; }
 
 /* Numbers and code stay in a steady typeface so they line up. */
 code, .font-mono {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* ---------- Design system: black, flat, one white accent ---------- */
@@ -147,7 +150,7 @@ code, .font-mono {
 /* Buttons: small, uppercase, square-ish. */
 .pill, .pill-primary {
   border-radius: 8px;
-  font-family: 'Montserrat', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Montserrat Variable', 'Montserrat', 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -173,3 +176,21 @@ code, .font-mono {
   .rise, .orbit-ring { animation: none; opacity: 1; }
   .card-lift, .pill, .pill-primary { transition: none; }
 }
+
+/* ---------- Stitch design: chips, instrument cells ---------- */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 9999px;
+  font-family: 'Montserrat Variable', 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
+  color: var(--c, #fff);
+  background: color-mix(in srgb, var(--c, #fff) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c, #fff) 30%, transparent);
+}
+.chip::before { content: ''; width: 6px; height: 6px; border-radius: 9999px; background: var(--c, #fff); }
+.chip.plain::before { display: none; }
+.cell { background: #050506; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 10px 12px; }
+.cell .k { font-family: 'Montserrat Variable', 'Montserrat', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #8a8a96; }
+.cell .v { margin-top: 2px; font-family: 'JetBrains Mono Variable', 'JetBrains Mono', monospace; font-size: 14px; color: #fff; }
+.hud { font-family: 'JetBrains Mono Variable', 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .04em; color: #8a8a96; }
+@keyframes ping { 75%, 100% { transform: scale(2.2); opacity: 0; } }
+.ping { animation: ping 1.8s cubic-bezier(0,0,.2,1) infinite; }
+@media (prefers-reduced-motion: reduce) { .ping { animation: none; } }

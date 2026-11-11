@@ -141,13 +141,14 @@ export function Tonight(p: {
     );
   };
 
-  const sel = 'min-h-11 w-full rounded-lg border border-white/22 bg-[#0a0a0d] px-3 text-sm text-white';
+  const sel = 'min-h-12 w-full rounded-lg border border-white/15 bg-[#0a0a0d] px-3 text-sm text-white focus:border-white focus:outline-none';
   const moon = night ? Math.round(moonLit(jdOf(night.start)) * 100) : null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-12">
-      <div className="eyebrow">Tonight</div>
-      <h1 className="mt-2 text-2xl text-white md:text-5xl">What can you observe<br className="hidden md:block" /> from {place.name}?</h1>
+    <div className="mx-auto w-full max-w-6xl px-4 py-5 md:px-6 md:py-12">
+      <div className="eyebrow flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ff7a45]" />Observation planner</div>
+      <h1 className="mt-2 text-[30px] leading-tight text-white md:text-5xl">Tonight’s sky</h1>
+      <p className="mt-1 font-mono text-xs text-[#8a8a96] md:text-sm">{place.name} · {place.lat.toFixed(2)}° {place.lon.toFixed(2)}°</p>
       <p className="mt-4 hidden max-w-2xl text-[15px] sm:block leading-relaxed text-[#b4b4be]">Pick where you are and what you are using. AstroPulse lists the stars with known planets that are high enough in the sky, and the planet transits you could catch. {p.live ? '' : 'Transit times need the live NASA list, which is not loaded right now.'}</p>
 
       <section className="panel mt-7 rounded-xl p-4 md:p-5" aria-label="Where and with what">
@@ -167,13 +168,13 @@ export function Tonight(p: {
               <option value="custom">{custom ? `${place.name} (${place.lat}, ${place.lon})` : 'My own latitude and longitude…'}</option>
             </select>
           </label>
-          <label className="block">
+          <div className="col-span-2 md:col-span-1">
             <span className="eyebrow">What you have</span>
-            <select className={`${sel} mt-1.5`} value={gear} onChange={(e) => { setGear(e.target.value as GearId); setMore(60); }}>
-              {GEAR.map((g) => (<option key={g.id} value={g.id}>{g.label} ({g.hint})</option>))}
-            </select>
-          </label>
-          <label className="block">
+            <div className="hide-scroll mt-1.5 flex gap-1.5 overflow-x-auto md:flex-wrap" role="group" aria-label="What you have">
+              {GEAR.map((g) => (<button key={g.id} type="button" aria-pressed={gear === g.id} onClick={() => { setGear(g.id as GearId); setMore(60); }} className="pill min-h-11 shrink-0 px-3.5 !text-[11px]" title={g.hint}>{g.label}</button>))}
+            </div>
+          </div>
+          <label className="col-span-2 block md:col-span-1">
             <span className="eyebrow">Which night</span>
             <select className={`${sel} mt-1.5`} value={offset} onChange={(e) => setOffset(Number(e.target.value))}>
               {[0, 1, 2, 3, 4, 5, 6].map((d) => (<option key={d} value={d}>{d === 0 ? 'Tonight' : d === 1 ? 'Tomorrow night' : `In ${d} nights`}</option>))}
@@ -196,13 +197,13 @@ export function Tonight(p: {
         {geoMsg ? <p role="alert" className="mt-3 text-sm text-[#fca5a5]">{geoMsg}</p> : null}
 
         {night ? (
-          <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-white/10 text-sm md:grid-cols-4">
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
             {([
               ['Sun sets', night.sunset ? `${clock(night.sunset)}` : '–'],
               ['Fully dark', `${clock(night.start)} to ${clock(night.end)}`],
               ['Sun rises', night.sunrise ? `${clock(night.sunrise)}` : '–'],
               ['Moon', moon === null ? '–' : moon > 70 ? `${moon}% lit: bright, hides faint stars` : moon > 30 ? `${moon}% lit` : `${moon}% lit: dark sky`],
-            ] as const).map(([k, v]) => (<div key={k} className="bg-[#0a0a0d] px-3 py-2.5"><dt className="eyebrow">{k}</dt><dd className="mt-0.5 font-medium text-white">{v}</dd></div>))}
+            ] as const).map(([k, v]) => (<div key={k} className="cell"><dt className="k">{k}</dt><dd className="v !text-[13px] leading-snug">{v}</dd></div>))}
           </dl>
         ) : (
           <p className="mt-4 text-sm text-[#c9d5ee]">{now ? 'The Sun does not get low enough for a dark night here on this date.' : 'Working out the night…'}</p>
@@ -210,9 +211,9 @@ export function Tonight(p: {
         <p className="mt-2 text-xs text-[#8b8b96]">Times are in {tz}. “Dark” means the Sun is at least 12° below the horizon.</p>
       </section>
 
-      <div className="mt-8 flex flex-wrap items-center gap-2" role="group" aria-label="What to show">
+      <div className="mt-6 grid grid-cols-2 gap-2 md:flex md:flex-wrap" role="group" aria-label="What to show">
         {([['stars', `Stars up (${shown.length.toLocaleString()})`], ['transits', `Planet transits (${fullOnly.length})`]] as const).map(([k, label]) => (
-          <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)} className="pill min-h-11 px-5">{label}</button>
+          <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)} className="pill min-h-12 px-3 md:px-5">{label}</button>
         ))}
       </div>
 
@@ -235,10 +236,10 @@ export function Tonight(p: {
                   <li key={`${h.n}-${h.pl}`} className="panel flex flex-col rounded-xl p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="truncate text-lg font-semibold text-white">{h.n}</div>
+                        <div className="truncate font-heading text-lg font-bold text-white">{h.n}</div>
                         <div className="eyebrow !text-[10px]">{h.np && h.np > 1 ? `${h.np} planets` : '1 planet'} · {h.t === 'other' ? (h.om ?? 'other method').toLowerCase() : METHODS[h.t].short.toLowerCase()}</div>
                       </div>
-                      <span className="shrink-0 rounded bg-white/10 px-2 py-0.5 text-xs font-semibold text-white">{h.m!.toFixed(1)} mag</span>
+                      <span className="chip plain shrink-0" style={{ ['--c' as string]: h.t === 'other' ? '#b4b4be' : METHODS[h.t].color }}>{h.m!.toFixed(1)} mag</span>
                     </div>
                     <div className="mt-3"><Spark track={pass.track} /></div>
                     <p className="mt-1 text-sm text-[#c9d5ee]">Highest at <b className="text-white">{clock(pass.bestTime)}</b>, {Math.round(pass.maxAlt)}° up, look {compass(azimuth(h.ra, h.dec, place.lat, place.lon, jd))}.</p>
@@ -267,28 +268,34 @@ export function Tonight(p: {
                   <button type="button" className="pill min-h-10 px-4" onClick={() => download('astropulse-transits.ics', icsFor(fullOnly.map((t) => ({ title: `${t.h.n} ${t.h.pl}: transit`, start: t.ev.start, end: t.ev.end, note: `Dip about ${t.depth ? t.depth.toFixed(1) + ' parts per thousand' : 'unknown'}. Star brightness ${t.h.m?.toFixed(1)} mag. Check the time on exoclock.space before a long session.` }))))}>Add all {fullOnly.length} to my calendar</button>
                 ) : null}
               </div>
-              <ul className="mt-4 grid gap-2">
-                {transits.slice(0, more).map((t, i) => (
-                  <li key={`${t.h.n}-${t.ev.epoch}-${i}`} className="panel grid items-center gap-3 rounded-xl p-4 md:grid-cols-[170px_minmax(0,1fr)_auto]">
-                    <div>
-                      <div className="eyebrow">{dayName(t.ev.mid)}</div>
-                      <div className="text-lg font-semibold text-white">{clock(t.ev.start)} to {clock(t.ev.end)}</div>
-                    </div>
-                    <div className="min-w-0">
+              <ul className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {transits.slice(0, more).map((t, i) => {
+                  const hrs = (t.ev.end.getTime() - t.ev.start.getTime()) / 3600000;
+                  const when = `${clock(t.ev.start)} – ${clock(t.ev.end)}`;
+                  return (
+                    <li key={`${t.h.n}-${t.ev.epoch}-${i}`} className="panel flex flex-col rounded-xl p-4">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-base font-semibold text-white">{t.h.n} {t.h.pl}</span>
-                        <span className={`rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${t.ok ? 'bg-[#14532d] text-[#bbf7d0]' : 'bg-[#3a2a10] text-[#fcd34d]'}`}>{t.ok ? 'Whole transit' : 'Partly visible'}</span>
+                        <span className="chip" style={{ ['--c' as string]: METHODS.transit.color }}>Transit</span>
+                        <span className="chip plain" style={{ ['--c' as string]: t.ok ? '#4ade80' : '#fbbf24' }}>{t.ok ? 'Whole transit' : 'Partly visible'}</span>
+                        {t.depth ? <span className="hud ml-auto uppercase">{t.depth >= 10 ? 'Easy' : t.depth >= 3 ? 'Doable' : 'Hard'}</span> : null}
                       </div>
-                      <div className="text-sm text-[#c9d5ee]">
-                        Dips {t.depth ? `${t.depth.toFixed(1)} parts per thousand${t.depth >= 10 ? ' (easy)' : t.depth >= 3 ? ' (doable)' : ' (hard)'}` : 'by an unknown amount'} · {t.h.m!.toFixed(1)} mag · {Math.round(t.midAlt)}° up, look {compass(t.az)}
+                      <div className="mt-3 flex items-start justify-between gap-3">
+                        <h3 className="min-w-0 text-[22px] leading-7">{t.h.n} <span className="font-medium text-[#8a8a96]">{t.h.pl}</span></h3>
+                        <div className="shrink-0 text-right"><div className="eyebrow !text-[10px]">Star</div><div className="font-mono text-sm text-white">{t.h.m!.toFixed(1)} mag</div></div>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button type="button" className="pill min-h-10 px-3.5 !text-[11px]" onClick={() => download(`transit-${t.h.n.replace(/\W+/g, '-')}.ics`, icsFor([{ title: `${t.h.n} ${t.h.pl}: transit`, start: t.ev.start, end: t.ev.end, note: `Star brightness ${t.h.m?.toFixed(1)} mag.` }]))}>Add to calendar</button>
-                      {p.canOpen(t.h) ? <button type="button" className="pill min-h-10 px-3.5 !text-[11px]" onClick={() => p.onOpen(t.h)}>Study</button> : null}
-                    </div>
-                  </li>
-                ))}
+                      <div className="mt-1 text-sm text-[#b4b4be]">{dayName(t.ev.mid)} · {when}</div>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <div className="cell"><div className="k">Length</div><div className="v !text-[13px]">{Math.floor(hrs)}h {String(Math.round((hrs % 1) * 60)).padStart(2, '0')}m</div></div>
+                        <div className="cell"><div className="k">Dip</div><div className="v !text-[13px]">{t.depth ? `${(t.depth * 1000).toFixed(0)} ppm` : '–'}</div></div>
+                        <div className="cell"><div className="k">Peak</div><div className="v !text-[13px]">{Math.round(t.midAlt)}° {compass(t.az)}</div></div>
+                      </div>
+                      <div className="mt-auto grid gap-2 pt-3">
+                        <button type="button" className="pill-primary min-h-12 w-full px-3 !text-[11px]" onClick={() => download(`transit-${t.h.n.replace(/\W+/g, '-')}.ics`, icsFor([{ title: `${t.h.n} ${t.h.pl}: transit`, start: t.ev.start, end: t.ev.end, note: `Star brightness ${t.h.m?.toFixed(1)} mag.` }]))}>Add to calendar ({when})</button>
+                        {p.canOpen(t.h) ? <button type="button" className="pill min-h-11 w-full !text-[11px]" onClick={() => p.onOpen(t.h)}>Study this star →</button> : null}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
               {transits.length > more ? <div className="mt-5 text-center"><button type="button" onClick={() => setMore(more + 60)} className="pill min-h-11 px-6">Show more</button></div> : null}
             </>

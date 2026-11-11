@@ -216,13 +216,15 @@ export function TelescopeView({ target, curve, real, stars, onBack, onOpenLab }:
   }, [curve]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-black">
-      <div ref={wrap} className="relative min-h-0 flex-1">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-black md:overflow-hidden">
+      <div ref={wrap} className="relative h-[46dvh] min-h-[260px] shrink-0 md:h-auto md:min-h-0 md:flex-1">
         <canvas ref={canvas} role="img" aria-label={`Telescope view of ${target.name}`} className="absolute inset-0 h-full w-full" />
-        <div className="absolute left-3 top-3 max-w-[calc(100%-6.75rem)] glass rounded-xl p-2.5 text-sm text-[#e6edff] sm:max-w-[280px] sm:p-3">
+        <div className="absolute left-3 top-3 max-w-[calc(100%-5.75rem)] rounded-full bg-[#0a0a0d]/90 px-3 py-2 sm:hidden">
+          <div className="flex items-center gap-2 truncate font-mono text-[11px] text-[#b4b4be]"><span className="h-2 w-2 shrink-0 rounded-full bg-[#67e8f9]" /><b className="truncate font-semibold text-white">{target.name}</b><span className="shrink-0">· {target.magnitude} mag</span></div>
+        </div>
+        <div className="absolute left-3 top-3 hidden max-w-[280px] glass rounded-xl p-3 text-sm text-[#e6edff] sm:block">
           <div className="truncate text-base font-semibold text-white">{target.name}</div>
-          <div className="font-mono text-[11px] text-[#b3c0da] sm:hidden">{target.magnitude} mag{target.constellation ? ` · ${target.constellation}` : ''}</div>
-          <div className="mt-1 hidden font-mono text-[11px] leading-5 text-[#b3c0da] sm:block">
+          <div className="mt-1 font-mono text-[11px] leading-5 text-[#b3c0da]">
             RA {fmtRa(target.ra)}
             <br />
             Dec {fmtDec(target.dec)}
@@ -230,20 +232,24 @@ export function TelescopeView({ target, curve, real, stars, onBack, onOpenLab }:
             Brightness {target.magnitude} mag{target.constellation ? ` · ${target.constellation}` : ''}
           </div>
         </div>
+        <div className="hud absolute bottom-3 left-3 right-3 flex justify-between">
+          <span>{target.constellation ? target.constellation.toUpperCase() : 'EYEPIECE'}</span>
+          <span className={real ? 'text-[#4ade80]' : 'text-[#fbbf24]'}>{real ? 'REAL NASA DATA' : 'STAND-IN DATA'}</span>
+        </div>
         <button
           type="button"
           onClick={onBack}
-          className="absolute right-3 top-3 min-h-11 pill bg-black/70 px-3 text-sm font-medium text-white sm:px-4"
+          className="absolute right-3 top-3 min-h-10 pill bg-[#0a0a0d] px-3 text-sm font-medium text-white sm:px-4"
           aria-label="Back to the sky"
         >
           ← <span className="hidden sm:inline">Back to the sky</span><span className="sm:hidden">Sky</span>
         </button>
       </div>
 
-      <div className="glass-bar border-t p-3 md:p-4">
+      <div className="border-t border-white/10 bg-[#050506] p-4 md:p-4">
         <div className="mx-auto grid max-w-5xl gap-3 md:grid-cols-[1fr_1.25fr] md:items-center">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-[#8da0c4]">Step 2: record the starlight</div>
+            <div className="flex items-center gap-2 font-heading text-xs font-bold uppercase tracking-[0.12em] text-white"><span className="h-2 w-2 rounded-full bg-[#67e8f9]" />Step 2 of 5: record the starlight</div>
             {phase === 'idle' && (
               <>
                 <p className="mt-1 text-sm text-[#d5def5]">
@@ -269,23 +275,24 @@ export function TelescopeView({ target, curve, real, stars, onBack, onOpenLab }:
                   type="button"
                   onClick={start}
                   disabled={!curve || phase === 'recording'}
-                  className="min-h-12 pill-primary px-6 text-base font-semibold disabled:opacity-50"
+                  className="min-h-12 w-full pill-primary px-6 text-base font-semibold disabled:opacity-50 md:w-auto"
                 >
                   {!curve ? 'Loading data…' : phase === 'recording' ? 'Recording…' : '● Record starlight'}
                 </button>
               ) : (
                 <>
-                  <button type="button" onClick={onOpenLab} className="min-h-12 pill-primary px-6 text-base font-semibold">
+                  <button type="button" onClick={onOpenLab} className="min-h-12 w-full pill-primary px-6 text-base font-semibold md:w-auto">
                     Analyse this starlight →
                   </button>
-                  <button type="button" onClick={start} className="min-h-12 pill px-5 text-sm font-medium text-white">
+                  <button type="button" onClick={start} className="min-h-12 w-full pill px-5 text-sm font-medium text-white md:w-auto">
                     Record again
                   </button>
                 </>
               )}
             </div>
           </div>
-          <div className="glass rounded-xl p-2">
+          <div className="panel rounded-xl p-3">
+            <div className="eyebrow !text-[10px]">Live brightness</div>
             {partial && yr ? (
               <Plot
                 ariaLabel="Star brightness being recorded over time"
@@ -299,6 +306,11 @@ export function TelescopeView({ target, curve, real, stars, onBack, onOpenLab }:
             ) : (
               <div className="flex h-[150px] items-center justify-center text-sm text-[#9fb0cf]">Brightness graph appears here</div>
             )}
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <div className="cell"><div className="k">Readings</div><div className="v !text-[13px]">{curve ? curve.time.length.toLocaleString() : '–'}</div></div>
+              <div className="cell"><div className="k">Span</div><div className="v !text-[13px]">{partial ? `${partial.span.toFixed(1)} d` : '–'}</div></div>
+              <div className="cell"><div className="k">Star</div><div className="v !text-[13px]">{target.magnitude} mag</div></div>
+            </div>
           </div>
         </div>
       </div>
