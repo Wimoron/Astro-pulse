@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { METHODS, type Method } from '@/lib/methods';
+import { DiscoveryCard } from '../DiscoveryCard';
+import { recordDiscovery } from '@/lib/progress';
 
 export const PANEL = 'glass rounded-xl p-4 md:p-5';
 export const BTN2 = 'min-h-11 pill px-4 text-sm font-semibold text-white disabled:opacity-40';
@@ -70,12 +72,26 @@ export interface StepDef {
   locked?: string;
 }
 
-export function Shell(p: { method: Method; heading: string; steps: StepDef[]; onBack: () => void; picker?: ReactNode }) {
+export function Shell(p: { method: Method; heading: string; steps: StepDef[]; onBack: () => void; picker?: ReactNode; facts?: Array<[string, string]> }) {
   const [i, setI] = useState(0);
+  const [done, setDone] = useState<string | null>(null);
+  const finish = () => {
+    recordDiscovery({ id: `${p.method}-${p.heading}`, name: p.heading, method: p.method, facts: p.facts ?? [] });
+    setDone(p.heading);
+  };
   const body = useRef<HTMLDivElement>(null);
   useEffect(() => { body.current?.scrollTo({ top: 0 }); }, [i]);
   const st = p.steps[i]!;
   const last = i === p.steps.length - 1;
+  if (done) {
+    return (
+      <div className="h-full overflow-y-auto px-4 py-6">
+        <div className="mx-auto max-w-md">
+          <DiscoveryCard d={{ name: done, method: p.method, facts: p.facts ?? [] }} onNext={p.onBack} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div ref={body} className="min-h-0 flex-1 overflow-y-auto">
@@ -119,9 +135,9 @@ export function Shell(p: { method: Method; heading: string; steps: StepDef[]; on
           <div className="flex items-center gap-3">
           <button type="button" className="pill min-h-12 shrink-0 bg-[#1c1c22] px-4" disabled={i === 0} onClick={() => setI(i - 1)}>← Back</button>
           {last ? (
-            <button type="button" className="pill-primary min-h-12 min-w-0 flex-1 px-4" onClick={p.onBack}>Finish</button>
+            <button type="button" className="pill-primary min-h-12 min-w-0 flex-1 px-4" onClick={finish}>Finish</button>
           ) : (
-            <button type="button" className="pill-primary min-h-12 min-w-0 flex-1 px-4" disabled={!st.ok} onClick={() => setI(i + 1)}><span className="truncate">Next: {p.steps[i + 1]!.title} →</span></button>
+            <button type="button" className="pill-primary min-h-12 min-w-0 flex-1 px-4" disabled={!st.ok} onClick={() => setI(i + 1)}><span className="block text-[12px] leading-tight">Next: {p.steps[i + 1]!.title} →</span></button>
           )}
           </div>
         </div>

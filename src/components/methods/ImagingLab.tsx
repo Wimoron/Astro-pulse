@@ -5,6 +5,7 @@ import type { SkyTarget } from '@/lib/catalog';
 import { imagingGeometry } from '@/lib/methods';
 import { rng } from '@/lib/simulate';
 import { fmtMass } from './RvLab';
+import { planetFacts } from '@/lib/progress';
 import { BTN2, Callout, Diagram, hash, PANEL, Shell, Slider, Words, type StepDef } from './ui';
 
 const N = 340;
@@ -221,7 +222,7 @@ export function ImagingLab({ target, onBack, picker }: { target: SkyTarget; onBa
       ),
     },
   ];
-  return <Shell method="imaging" heading={pl.label} steps={steps.map((x, i) => ({ ...x, body: <StepTrack i={i} set={setStep}>{x.body}</StepTrack> }))} onBack={onBack} picker={picker} />;
+  return <Shell method="imaging" facts={planetFacts(pl)} heading={pl.label} steps={steps.map((x, i) => ({ ...x, body: <StepTrack i={i} set={setStep}>{x.body}</StepTrack> }))} onBack={onBack} picker={picker} />;
 }
 
 /** Tells the lab which step is showing. */

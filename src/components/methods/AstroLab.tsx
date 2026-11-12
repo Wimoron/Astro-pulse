@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { SkyTarget } from '@/lib/catalog';
 import { fitSine, logSpace, massFromLoop, planetOrbitAU, simulateAstro } from '@/lib/methods';
 import { fmtMass, massWords } from './RvLab';
+import { planetFacts } from '@/lib/progress';
 import { BTN2, Callout, Diagram, hash, MatchCurve, Meter, PANEL, Shell, Slider, Words, type StepDef } from './ui';
 
 function Track(p: { xs: number[]; ys: number[]; path?: Array<[number, number]>; circle?: number; R: number }) {
@@ -144,5 +145,5 @@ export function AstroLab({ target, onBack, picker }: { target: SkyTarget; onBack
       ),
     },
   ];
-  return <Shell method="astrometry" heading={pl.label} steps={steps} onBack={onBack} picker={picker} />;
+  return <Shell method="astrometry" facts={planetFacts(pl)} heading={pl.label} steps={steps} onBack={onBack} picker={picker} />;
 }

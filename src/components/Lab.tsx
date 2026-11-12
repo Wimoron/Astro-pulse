@@ -8,6 +8,8 @@ import { binFolded, fold, measureTransit, oddEven, planetPhysics, secondaryEclip
 import { robustSigma } from '@/lib/stats';
 import type { BlsPeak, BlsResult, DetrendParams, StarInfo, Target } from '@/lib/types';
 import { Plot } from './Plot';
+import { DiscoveryCard } from './DiscoveryCard';
+import { recordDiscovery } from '@/lib/progress';
 
 export type Mode = 'beginner' | 'expert';
 export interface LabState {
@@ -285,6 +287,24 @@ export function Lab({ target, mode, initial, onState, onBack, onShare, copied }:
         : weak
           ? { tone: 'warn', head: 'A tentative candidate', text: 'It passes the shape checks, but the signal is weak. More data would settle it.' }
           : { tone: 'good', head: 'Looks like a planet', text: 'It passes every check here. Astronomers would call this a planet candidate.' };
+  const disc = useMemo(() => {
+    if (!analysis || !cand || verdict?.tone !== 'good' || target.kind === 'upload') return null;
+    const ph = analysis.phys;
+    return {
+      id: `transit-${target.id}`,
+      name: target.name,
+      method: 'transit' as const,
+      facts: [
+        ['Size', `${num(ph.radiusEarth, 1)} R⊕`],
+        ['Year', `${num(cand.period, 2)} d`],
+        ['Orbit', `${num(ph.semiMajorAU, 3)} AU`],
+        ['Temp', `${Math.round(ph.equilibriumK - 273)} °C`],
+      ] as Array<[string, string]>,
+    };
+  }, [analysis, cand, verdict?.tone, target.id, target.name, target.kind]);
+  useEffect(() => {
+    if (step === 4 && disc) recordDiscovery(disc);
+  }, [step, disc]);
 
   const activePreset = PRESETS.find((p) => p.p.windowDays === dp.windowDays && p.p.order === dp.order && p.p.clipSigma === dp.clipSigma)?.id ?? 'custom';
   const tooStrong = dp.windowDays < 0.35;
@@ -612,6 +632,7 @@ export function Lab({ target, mode, initial, onState, onBack, onShare, copied }:
 
           {step === 4 && analysis && cand && (
             <>
+              {disc ? <DiscoveryCard d={disc} onNext={onBack} nextLabel="Try another star" /> : null}
               <Panel className="space-y-3">
                 <h3 className="text-lg font-semibold text-white">If it is a planet</h3>
                 <ul className="space-y-2 text-base text-[#e6edff]">

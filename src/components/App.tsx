@@ -8,7 +8,7 @@ import type { LightCurve, Target } from '@/lib/types';
 import { hostId, hostToTarget, labReady, type HostRec } from '@/lib/hosts';
 import { loadCatalog, loadRealCurve, type CatalogState } from '@/lib/live';
 import { Catalog } from './Catalog';
-import { Tonight } from './Tonight';
+import { Hunt } from './Hunt';
 import { type Method } from '@/lib/methods';
 import { Lab, type LabState, type Mode } from './Lab';
 import { FindStar } from './FindStar';
@@ -17,7 +17,7 @@ import { MethodLab } from './MethodLab';
 import { SkyView, type ConstellationRec, type StarRec } from './SkyView';
 import { TelescopeView } from './TelescopeView';
 
-type View = 'learn' | 'sky' | 'catalog' | 'tonight' | 'scope' | 'lab' | 'method';
+type View = 'learn' | 'sky' | 'catalog' | 'hunt' | 'scope' | 'lab' | 'method';
 
 const FEATURED_NAMES = new Set(['HD 209458', 'WASP-18', 'Pi Mensae', 'Kepler-10', 'Kepler-186']);
 const PRACTICE_START: Record<Exclude<Method, 'transit'>, string> = { rv: '51 Pegasi', imaging: 'Beta Pictoris', microlensing: 'OGLE-2003-BLG-235', astrometry: 'Practice star Q' };
@@ -90,7 +90,7 @@ export default function App() {
       setSelectedId(h.t);
       setLabInit({ w: Number(h.w) || undefined, o: Number(h.o) || undefined, c: Number(h.c) || undefined, p: Number(h.p) || 0, s: Number(h.s) || 0 });
       if (h.v === 'lab' || h.v === 'scope' || h.v === 'method' || h.v === 'sky') setView(h.v);
-    } else if (h.v === 'sky' || h.v === 'learn') setView(h.v);
+    } else if (h.v === 'sky' || h.v === 'learn' || h.v === 'hunt') setView(h.v);
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hostsDone]);
@@ -190,7 +190,7 @@ export default function App() {
 
   const isTransit = !sky || sky.method === 'transit';
   const go = (v: View) => {
-    if (v === 'sky' || v === 'learn' || v === 'catalog' || v === 'tonight') setView(v);
+    if (v === 'sky' || v === 'learn' || v === 'catalog' || v === 'hunt') setView(v);
     else if (v === 'lab' && sky && !isTransit) setView('method');
     else if (sky) setView(v);
   };
@@ -208,7 +208,7 @@ export default function App() {
     ['learn', 'Learn'],
     ['sky', 'Sky'],
     ['catalog', 'Catalog'],
-    ['tonight', 'Tonight'],
+    ['hunt', 'Hunt'],
     ['scope', 'Telescope'],
     ['lab', 'Lab'],
   ];
@@ -276,7 +276,7 @@ export default function App() {
       <main className="min-h-0 flex-1">
         {view === 'learn' && (
           <div className="h-full overflow-y-auto">
-            <Learn onPractice={practice} onSky={() => setView('sky')} onCatalog={() => setView('catalog')} counts={counts} total={catalog?.hosts.length ?? 0} status={catalog ? { source: catalog.source, updated: catalog.updated, fresh: catalog.fresh.length, error: catalog.error } : null} />
+            <Learn onPractice={practice} onSky={() => setView('sky')} onCatalog={() => setView('catalog')} onHunt={() => setView('hunt')} counts={counts} total={catalog?.hosts.length ?? 0} status={catalog ? { source: catalog.source, updated: catalog.updated, fresh: catalog.fresh.length, error: catalog.error } : null} />
           </div>
         )}
         {view === 'catalog' && catalog && (
@@ -292,9 +292,9 @@ export default function App() {
             />
           </div>
         )}
-        {view === 'tonight' && catalog && (
+        {view === 'hunt' && (
           <div className="h-full overflow-y-auto">
-            <Tonight hosts={catalog.hosts} live={catalog.source !== 'sample'} canOpen={canOpenHost} onOpen={openHost} />
+            <Hunt />
           </div>
         )}
         {view === 'method' && sky && sky.method !== 'transit' && (
@@ -335,7 +335,7 @@ export default function App() {
         )}
       </main>
       <nav aria-label="Main" className="glass-bar relative z-20 grid shrink-0 grid-cols-5 border-t border-white/10 pb-[env(safe-area-inset-bottom)] md:hidden">
-        {([['learn', 'Learn', 'M12 3 2 8l10 5 10-5-10-5Zm-6 9v4c0 1.5 2.7 3 6 3s6-1.5 6-3v-4'], ['sky', 'Sky', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4 1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7Z'], ['catalog', 'Catalog', 'M4 6h16M4 12h16M4 18h16'], ['tonight', 'Tonight', 'M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z'], ['study', 'Study', 'M3 19 9 5l3 8 3-4 6 10H3Z']] as const).map(([v, label, d]) => {
+        {([['learn', 'Learn', 'M12 3 2 8l10 5 10-5-10-5Zm-6 9v4c0 1.5 2.7 3 6 3s6-1.5 6-3v-4'], ['sky', 'Sky', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4 1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7Z'], ['catalog', 'Catalog', 'M4 6h16M4 12h16M4 18h16'], ['hunt', 'Hunt', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 3v2'], ['study', 'Study', 'M3 19 9 5l3 8 3-4 6 10H3Z']] as const).map(([v, label, d]) => {
           const current = v === 'study' ? view === 'scope' || view === 'lab' || view === 'method' : view === v;
           return (
             <button key={v} type="button" aria-current={current ? 'page' : undefined} onClick={() => (v === 'study' ? (sky ? setView(isTransit ? 'scope' : 'method') : setView('sky')) : go(v))} className={`flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${current ? 'text-white' : 'text-[#8a8a96]'}`}>

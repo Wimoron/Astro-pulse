@@ -7,6 +7,7 @@ import { lensMagnification, simulateMicro } from '@/lib/methods';
 import { loadOgle, microFromOgle } from '@/lib/microreal';
 import { Plot } from '../Plot';
 import { fmtMass, massWords } from './RvLab';
+import { planetFacts } from '@/lib/progress';
 import { BTN2, Callout, Diagram, hash, PANEL, Shell, Slider, Words, type StepDef } from './ui';
 
 export function MicroLab({ target, onBack, picker }: { target: SkyTarget; onBack: () => void; picker: React.ReactNode }) {
@@ -146,5 +147,5 @@ export function MicroLab({ target, onBack, picker }: { target: SkyTarget; onBack
       ),
     },
   ];
-  return <Shell method="microlensing" heading={pl.label} steps={steps} onBack={onBack} picker={picker} />;
+  return <Shell method="microlensing" facts={planetFacts(pl)} heading={pl.label} steps={steps} onBack={onBack} picker={picker} />;
 }

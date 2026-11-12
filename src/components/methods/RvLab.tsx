@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { SkyTarget } from '@/lib/catalog';
 import { EARTH_PER_MJ, fitSine, logSpace, massFromK, simulateRv } from '@/lib/methods';
 import { Plot } from '../Plot';
+import { planetFacts } from '@/lib/progress';
 import { BTN2, Callout, Diagram, hash, MatchCurve, Meter, PANEL, Shell, Slider, Words, type StepDef } from './ui';
 
 export function massWords(mj: number): string {
@@ -168,5 +169,5 @@ export function RvLab({ target, onBack, picker }: { target: SkyTarget; onBack: (
       ),
     },
   ];
-  return <Shell method="rv" heading={pl.label} steps={steps} onBack={onBack} picker={picker} />;
+  return <Shell method="rv" facts={planetFacts(pl)} heading={pl.label} steps={steps} onBack={onBack} picker={picker} />;
 }
