@@ -142,7 +142,7 @@ export interface Score {
 }
 
 /** 100 points: 50 for the right verdict, 50 for the period (a half or double period earns a little). */
-export function score(p: Puzzle, verdict: Verdict, period: number | null, usedHelp: boolean): Score {
+export function score(p: { truth: { kind: Verdict; periodDays: number | null } }, verdict: Verdict, period: number | null, usedHelp: boolean): Score {
   const lines: string[] = [];
   const t = p.truth;
   const verdictPts = verdict === t.kind ? 50 : 0;

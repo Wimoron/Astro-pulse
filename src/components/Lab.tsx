@@ -77,6 +77,33 @@ function Panel({ children, className = '' }: { children: React.ReactNode; classN
   return <section className={`rounded-xl border border-white/10 bg-[#0a0a0d] p-4 ${className}`}>{children}</section>;
 }
 
+
+/** Plain-language picture of what a transit looks like, with no real data in the way. */
+function DipPrimer() {
+  const x: number[] = [];
+  const y: number[] = [];
+  for (let i = 0; i <= 120; i++) {
+    const d = i / 12;
+    x.push(d);
+    const jitter = (((Math.sin(i * 12.9898) * 43758.5453) % 1) - 0.5) * 0.0012;
+    y.push((d >= 4 && d <= 5.5 ? 0.99 : 1) + jitter);
+  }
+  return (
+    <Panel className="space-y-3">
+      <h3 className="text-lg font-semibold text-white">How to read this kind of graph</h3>
+      <p className="text-base text-[#d5def5]">Here is an imaginary star with one planet and nothing else going on. Left to right is time. Up is brighter.</p>
+      <Plot ariaLabel="Example: a flat line with one small dip while a planet crosses the star" series={[{ x, y, color: '#cbd6ef', size: 1.6 }]} vlines={[{ x: 4, color: '#fbbf24', dash: true, label: 'planet starts to cross' }, { x: 5.5, color: '#fbbf24', dash: true }]} xLabel="Days" yLabel="Brightness (1 = normal)" yRange={[0.984, 1.006]} height={200} />
+      <ol className="space-y-2 text-[15px] text-[#d5def5]">
+        <li><b className="text-white">1. The flat part</b> is the star at normal brightness, 1.000. Nothing is in the way.</li>
+        <li><b className="text-white">2. The dip</b> is the planet passing in front. It is dark, so it hides a little starlight. Brightness drops to 0.990 and comes back when the planet leaves.</li>
+        <li><b className="text-white">3. The size of the dip</b> tells you the planet’s size. Depth = normal − bottom = 1.000 − 0.990 = 0.010, which is 1%. The planet covers 1% of the star’s face. Width is the square root: √0.01 = 0.1, so the planet is one tenth as wide as its star.</li>
+        <li><b className="text-white">4. The length of the dip</b> is how long the planet takes to cross, usually a few hours.</li>
+        <li><b className="text-white">5. The jitter</b> is random noise in every measurement. Small planets make dips smaller than the jitter, which is why we need tricks.</li>
+      </ol>
+    </Panel>
+  );
+}
+
 function Btn({ children, onClick, primary, disabled, className = '' }: { children: React.ReactNode; onClick?: () => void; primary?: boolean; disabled?: boolean; className?: string }) {
   return (
     <button
@@ -376,11 +403,22 @@ export function Lab({ target, mode, initial, onState, onBack, onShare, copied }:
                 <Stat label="Star size" value={`${num(star.radiusSun, 2)} Suns`} sub="across, compared with ours" />
                 <Stat label="Star surface" value={`${Math.round(star.teffK).toLocaleString()} K`} sub={star.teffK < 4000 ? 'cool red star' : star.teffK > 6000 ? 'hot white-yellow star' : 'yellow star like the Sun'} />
               </div>
+              <DipPrimer />
             </>
           )}
 
           {step === 1 && (
             <>
+              <Panel className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">What “cleaning” means here</h3>
+                <p className="text-base text-[#d5def5]">The star’s own wobble is much bigger than a planet’s dip. It is like trying to spot a small pothole on a hilly road. So we flatten the road first. Three steps:</p>
+                <ol className="space-y-2 text-[15px] text-[#d5def5]">
+                  <li><b className="text-white">1. Draw the slow trend.</b> The computer slides along the data, {num(dp.windowDays, 2)} days at a time, and fits a smooth curve (the blue line below). It shows what the star would do with no planet.</li>
+                  <li><b className="text-white">2. Drop the flares.</b> Any point far above the line (more than {num(dp.clipSigma, 1)}× the usual jitter) is a flare, not a planet. {det.removed} point{det.removed === 1 ? '' : 's'} removed. Dips go down, so they are kept.</li>
+                  <li><b className="text-white">3. Divide by the line.</b> Each point is divided by the blue line. If the star is at 0.985 and the line says 0.985, the result is 1.000. The wobble becomes flat. A quick dip, shorter than the window, is still there.</li>
+                </ol>
+                <p className="text-sm text-[#9fb0cf]">Too aggressive and the filter treats a real dip as wobble and erases it. That is why a gentler setting is safer for small planets.</p>
+              </Panel>
               <Panel className="space-y-1">
                 <h3 className="text-sm font-semibold text-[#c5d1ea]">Before: the raw starlight, with the wobble the computer found (blue line)</h3>
                 <Plot
@@ -458,6 +496,17 @@ export function Lab({ target, mode, initial, onState, onBack, onShare, copied }:
                 <Stat label="Dips seen" value={String(analysis.m.nTransits)} />
                 <Stat label="Confidence" value={analysis.m.snr >= 10 ? 'Strong' : analysis.m.snr >= 7 ? 'Good' : analysis.m.snr >= 5 ? 'Weak' : 'Very weak'} sub={`signal-to-noise ${num(analysis.m.snr, 1)}`} />
               </div>
+              <Panel className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">How the planet’s size is worked out</h3>
+                <ol className="space-y-2 text-[15px] text-[#d5def5]">
+                  <li><b className="text-white">1. Normal brightness:</b> 1.0000 (the flat part of the stack).</li>
+                  <li><b className="text-white">2. Bottom of the dip:</b> {num(1 - analysis.m.depth, 4)} (the orange line at its lowest).</li>
+                  <li><b className="text-white">3. Depth:</b> 1.0000 − {num(1 - analysis.m.depth, 4)} = {num(analysis.m.depth, 4)}, or {num(analysis.m.depth * 100, 2)}% of the light.</li>
+                  <li><b className="text-white">4. Planet width compared with the star:</b> √{num(analysis.m.depth, 4)} = {num(analysis.phys.radiusRatio, 3)}.</li>
+                  <li><b className="text-white">5. Times the star’s size:</b> {num(analysis.phys.radiusRatio, 3)} × {num(star.radiusSun, 2)} Suns = {num(analysis.phys.radiusEarth, 1)} Earths wide.</li>
+                </ol>
+                <p className="text-sm text-[#9fb0cf]">Why stack at all? One dip is often smaller than the jitter. Stacking {analysis.m.nTransits} dips shrinks the jitter by about √{analysis.m.nTransits} = {num(Math.sqrt(Math.max(1, analysis.m.nTransits)), 1)}×, so the dip stands out.</p>
+              </Panel>
             </>
           )}
 
@@ -502,7 +551,7 @@ export function Lab({ target, mode, initial, onState, onBack, onShare, copied }:
                 <li>Each dot is one measurement of the star’s brightness. 1.00 means normal.</li>
                 <li>The slow up-and-down wobble is dark <b>starspots</b> rotating in and out of view.</li>
                 <li>The sharp upward spikes are <b>flares</b>, bursts of extra light.</li>
-                <li>A planet crossing the star makes a small, quick <b>dip</b>. It is hidden under the wobble.</li>
+                <li>A planet crossing the star makes a small, quick <b>dip</b>. It is hidden under the wobble. The picture below the graph shows what a dip looks like and how its size is worked out.</li>
               </ul>
               <p className="text-sm text-[#9fb0cf]">Next, we clean the wobble away.</p>
             </Panel>

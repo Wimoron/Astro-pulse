@@ -3,10 +3,13 @@
 import { useMemo, useState } from 'react';
 import { Plot } from './Plot';
 import { Meter } from './methods/ui';
-import { autoPeriod, cleaned, dayIndex, foldAt, makePuzzle, rank, score, TIER_NAME, tierForDay, type HuntLog, type Score, type Tier, type Verdict } from '@/lib/hunt';
+import { autoPeriod, cleaned, dayIndex, foldAt, makePuzzle, rank, score, TIER_NAME, tierForDay, type HuntLog, type Puzzle, type Score, type Tier, type Verdict } from '@/lib/hunt';
 import { shareCard } from '@/lib/card';
 import { binFolded, oddEven, secondaryEclipse } from '@/lib/physics';
 import { streak } from '@/lib/hunt';
+import { AstroView, ImgView, MicroView, RvView } from './HuntViews';
+import { makeAstro, makeImaging, makeMicro, makeRv, methodForDay, methodForSeed } from '@/lib/huntmore';
+import type { Method } from '@/lib/methods';
 
 const LO = 0.8;
 const HI = 12;
@@ -18,19 +21,11 @@ const VERDICTS: Array<[Verdict, string, string]> = [
   ['none', 'Nothing there', 'Just wobble and flares'],
 ];
 
-export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) => void }) {
-  const today = useMemo(() => dayIndex(), []);
-  const [practiceSeed, setPracticeSeed] = useState<number | null>(null);
-  const seed = practiceSeed ?? today;
-  const tier: Tier = practiceSeed === null ? tierForDay(today) : ((practiceSeed % 4) as Tier);
-  const puzzle = useMemo(() => makePuzzle(seed, tier), [seed, tier]);
+function TransitView({ puzzle, locked, onDone }: { puzzle: Puzzle; locked: boolean; onDone: (s: Score, v: Verdict) => void }) {
   const lc = useMemo(() => cleaned(puzzle.curve), [puzzle]);
-
   const [x, setX] = useState(() => toX(3));
   const [helped, setHelped] = useState(false);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
-  const [result, setResult] = useState<Score | null>(null);
-  const done = practiceSeed === null ? log.days[String(today)] : undefined;
 
   const period = toP(x);
   const fold = useMemo(() => foldAt(lc, period), [lc, period]);
@@ -50,55 +45,17 @@ export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) =>
   const nudge = (f: number) => setX(toX(Math.min(HI, Math.max(LO, period * f))));
   const strong = Math.max(0, Math.min(1, (fold.strength - 4) / 14));
 
-  const submit = () => {
-    if (!verdict) return;
-    const s = score(puzzle, verdict, verdict === 'none' ? null : period, helped);
-    setResult(s);
-    if (practiceSeed === null) onLog({ ...log, days: { ...log.days, [String(today)]: { pts: s.total, verdict } } });
-    else onLog({ ...log, practice: log.practice + 1 });
-  };
-  const again = () => {
-    setPracticeSeed(Math.floor(Math.random() * 1e6));
-    setResult(null);
-    setVerdict(null);
-    setHelped(false);
-    setX(toX(3));
-  };
-
-  const shown = result ?? (done ? { total: done.pts, verdictPts: 0, periodPts: 0, helpCost: 0, lines: [] } : null);
-  const days = streak(log, today);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="chip" style={{ ['--c' as string]: '#67e8f9' }}>{practiceSeed === null ? `Today · ${TIER_NAME[tier]}` : `Practice · ${TIER_NAME[tier]}`}</span>
-        <span className="chip plain" style={{ ['--c' as string]: '#fbbf24' }}>{days} {days === 1 ? "day" : "days"} streak</span>
-      </div>
-      <div>
-        <h1 className="text-[26px] text-white">{puzzle.name}</h1>
-        <p className="mt-1 text-[15px] text-[#b4b4be]">A star seen for 27 days. Is a planet hiding in it? Find the repeat, then make your call.</p>
-      </div>
-
+    <>
       <section className="panel rounded-xl p-3" aria-label="Raw brightness">
         <div className="eyebrow mb-1 px-1">The star, 27 days</div>
         <Plot series={[{ x: raw.x, y: raw.y, color: '#8a8a96', size: 1.6 }]} height={190} xLabel="Days" yLabel="Brightness" ariaLabel="Raw brightness of the star over 27 days" />
       </section>
 
-      {shown ? (
-        <section className="panel rounded-xl p-4" role="status" aria-label="Result">
-          <div className="eyebrow">{result ? 'Your result' : 'Done for today'}</div>
-          <div className="mt-1 flex items-baseline gap-3">
-            <span className="font-mono text-5xl text-white">{shown.total}</span>
-            <span className="font-heading text-sm font-bold uppercase tracking-[0.1em] text-[#67e8f9]">{rank(shown.total)}</span>
-          </div>
-          {result ? <ul className="mt-3 space-y-1 text-[15px] text-[#c9c9d2]">{result.lines.map((l) => <li key={l}>{l}</li>)}</ul> : <p className="mt-2 text-[15px] text-[#b4b4be]">A new puzzle arrives tomorrow. Keep the streak going, or practise now.</p>}
-          {result ? <p className="mt-3 rounded-lg border border-white/10 bg-[#050506] p-3 text-[15px] text-white">{puzzle.truth.note}</p> : null}
-          <button type="button" className="pill-primary mt-4 min-h-12 w-full" onClick={again}>Another practice puzzle</button>
-          {result ? <button type="button" className="pill mt-2 min-h-12 w-full" onClick={() => shareCard({ kicker: `${puzzle.name} · ${TIER_NAME[tier]}`, title: `I scored ${result.total}: ${rank(result.total)}`, facts: [['Score', `${result.total} / 100`], ['Streak', `${days} ${days === 1 ? 'day' : 'days'}`]], color: '#67e8f9', footer: 'Daily Hunt · AstroPulse' }, 'astropulse-hunt.png').catch(() => undefined)}>Share my result</button> : null}
-        </section>
-      ) : (
+      {locked ? null : (
         <>
-          <section className="panel rounded-xl p-3" aria-label="Fold the data">
+                  <section className="panel rounded-xl p-3" aria-label="Fold the data">
             <div className="eyebrow mb-1 px-1">Try a repeat time</div>
             <Plot series={[{ x: view.x, y: view.y, color: '#8a8a96', size: 1.6 }, { x: view.bx, y: view.by, color: '#fbbf24', kind: 'line' }]} height={190} xRange={[-0.6, 0.6]} xLabel="Days from the dip" yLabel="Brightness" ariaLabel={`Data folded every ${period.toFixed(2)} days`} />
             <div className="mt-3 flex items-baseline justify-between px-1">
@@ -134,13 +91,86 @@ export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) =>
                 </button>
               ))}
             </div>
-            <button type="button" className="pill-primary mt-3 min-h-12 w-full" disabled={!verdict} onClick={submit}>Lock in my answer</button>
+            <button type="button" className="pill-primary mt-3 min-h-12 w-full" disabled={!verdict} onClick={() => verdict && onDone(score(puzzle, verdict, verdict === 'none' ? null : period, helped), verdict)}>Lock in my answer</button>
             <button type="button" className="pill mt-2 min-h-11 w-full text-xs" onClick={() => { setX(toX(autoPeriod(lc))); setHelped(true); }}>
               {helped ? 'Auto-search used (−25 points)' : 'Stuck? Auto-search (−25 points)'}
             </button>
           </section>
         </>
       )}
+    </>
+  );
+}
+
+const METHOD_INFO: Record<Method, { label: string; color: string; blurb: string }> = {
+  transit: { label: 'Dimming', color: '#67e8f9', blurb: 'A star seen for 27 days. Is a planet hiding in it? Find the repeat, then make your call.' },
+  rv: { label: 'Wobble', color: '#fbbf24', blurb: 'A planet tugs its star back and forth. Does this star wobble on a schedule, and is it a planet?' },
+  microlensing: { label: 'Flash', color: '#a78bfa', blurb: 'A star drifted in front of a far one and magnified it. Did a planet add its own bump?' },
+  astrometry: { label: 'Position', color: '#4ade80', blurb: 'A planet tugs its star around a tiny loop in the sky. Do these positions make a loop?' },
+  imaging: { label: 'Photo', color: '#f472b6', blurb: 'Two telescope pictures of a young star. Is one of the dots a planet?' },
+};
+
+export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) => void }) {
+  const today = useMemo(() => dayIndex(), []);
+  const [practiceSeed, setPracticeSeed] = useState<number | null>(null);
+  const seed = practiceSeed ?? today;
+  const tier: Tier = practiceSeed === null ? tierForDay(today) : ((practiceSeed % 4) as Tier);
+  const method: Method = practiceSeed === null ? methodForDay(today) : methodForSeed(practiceSeed);
+  const puzzle = useMemo(() => {
+    switch (method) {
+      case 'rv': return makeRv(seed, tier);
+      case 'microlensing': return makeMicro(seed, tier);
+      case 'astrometry': return makeAstro(seed, tier);
+      case 'imaging': return makeImaging(seed, tier);
+      default: return makePuzzle(seed, tier);
+    }
+  }, [method, seed, tier]);
+  const [result, setResult] = useState<Score | null>(null);
+  const done = practiceSeed === null ? log.days[String(today)] : undefined;
+  const info = METHOD_INFO[method];
+
+  const onDone = (s: Score, verdict: Verdict) => {
+    setResult(s);
+    if (practiceSeed === null) onLog({ ...log, days: { ...log.days, [String(today)]: { pts: s.total, verdict } } });
+    else onLog({ ...log, practice: log.practice + 1 });
+  };
+  const again = () => {
+    setPracticeSeed(Math.floor(Math.random() * 1e6));
+    setResult(null);
+  };
+
+  const shown = result ?? (done ? { total: done.pts, verdictPts: 0, periodPts: 0, helpCost: 0, lines: [] } : null);
+  const days = streak(log, today);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="chip" style={{ ['--c' as string]: info.color }}>{practiceSeed === null ? `Today · ${info.label} · ${TIER_NAME[tier]}` : `Practice · ${info.label} · ${TIER_NAME[tier]}`}</span>
+        <span className="chip plain" style={{ ['--c' as string]: '#fbbf24' }}>{days} {days === 1 ? "day" : "days"} streak</span>
+      </div>
+      <div>
+        <h1 className="text-[26px] text-white">{puzzle.name}</h1>
+        <p className="mt-1 text-[15px] text-[#b4b4be]">{info.blurb}</p>
+      </div>
+
+      {method === 'transit' ? <TransitView key={seed} puzzle={puzzle as Puzzle} locked={!!shown} onDone={onDone} /> : null}
+      {method === 'rv' ? <RvView key={seed} puzzle={puzzle as ReturnType<typeof makeRv>} locked={!!shown} onDone={onDone} /> : null}
+      {method === 'microlensing' ? <MicroView key={seed} puzzle={puzzle as ReturnType<typeof makeMicro>} locked={!!shown} onDone={onDone} /> : null}
+      {method === 'astrometry' ? <AstroView key={seed} puzzle={puzzle as ReturnType<typeof makeAstro>} locked={!!shown} onDone={onDone} /> : null}
+      {method === 'imaging' ? <ImgView key={seed} puzzle={puzzle as ReturnType<typeof makeImaging>} locked={!!shown} onDone={onDone} /> : null}
+      {shown ? (
+        <section className="panel rounded-xl p-4" role="status" aria-label="Result">
+          <div className="eyebrow">{result ? 'Your result' : 'Done for today'}</div>
+          <div className="mt-1 flex items-baseline gap-3">
+            <span className="font-mono text-5xl text-white">{shown.total}</span>
+            <span className="font-heading text-sm font-bold uppercase tracking-[0.1em] text-[#67e8f9]">{rank(shown.total)}</span>
+          </div>
+          {result ? <ul className="mt-3 space-y-1 text-[15px] text-[#c9c9d2]">{result.lines.map((l) => <li key={l}>{l}</li>)}</ul> : <p className="mt-2 text-[15px] text-[#b4b4be]">A new puzzle arrives tomorrow. Keep the streak going, or practise now.</p>}
+          {result ? <p className="mt-3 rounded-lg border border-white/10 bg-[#050506] p-3 text-[15px] text-white">{puzzle.truth.note}</p> : null}
+          <button type="button" className="pill-primary mt-4 min-h-12 w-full" onClick={again}>Another practice puzzle</button>
+          {result ? <button type="button" className="pill mt-2 min-h-12 w-full" onClick={() => shareCard({ kicker: `${puzzle.name} · ${TIER_NAME[tier]}`, title: `I scored ${result.total}: ${rank(result.total)}`, facts: [['Score', `${result.total} / 100`], ['Streak', `${days} ${days === 1 ? 'day' : 'days'}`]], color: '#67e8f9', footer: 'Daily Hunt · AstroPulse' }, 'astropulse-hunt.png').catch(() => undefined)}>Share my result</button> : null}
+        </section>
+      ) : null}
     </div>
   );
 }
