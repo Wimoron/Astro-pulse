@@ -7,11 +7,13 @@ import { APP_NAME, DEVELOPER, PLAY_URL, REPO_URL, SUPPORT_EMAIL, VERSION } from 
 import { dayIndex, loadHunt, streak, type HuntLog } from '@/lib/hunt';
 import { loadDispositions, loadFindings, saveFindings, serverReady, verdictOf, type Finding } from '@/lib/candidates';
 import { METHODS } from '@/lib/methods';
+import { API, NO_SERVER } from '@/lib/api';
+import { loadReminder, reminderSupported, setReminder, clearReminder, type Reminder } from '@/lib/reminder';
 import { badges, loadCollection, standing, xpOf, type Discovery } from '@/lib/progress';
 
 export type MePage = 'main' | 'privacy' | 'credits';
 
-const KEYS = ['ap-hunt-v1', 'ap-findings-v1', 'ap-collection-v1', 'ap-last-v1', 'ap-skyhint'];
+const KEYS = ['ap-reminder-v1', 'ap-hunt-v1', 'ap-findings-v1', 'ap-collection-v1', 'ap-last-v1', 'ap-skyhint'];
 
 function Row({ title, hint, onClick }: { title: string; hint?: string; onClick: () => void }) {
   return (
@@ -33,6 +35,23 @@ export function Me({ mode, setMode, onUpload, page, setPage, onIntro }: { mode: 
   const [msg, setMsg] = useState<string | null>(null);
   const [sure, setSure] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [net, setNet] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [rem, setRem] = useState<Reminder>({ on: false, hour: 18, minute: 0 });
+  const [canRemind, setCanRemind] = useState(false);
+  const [remNote, setRemNote] = useState<string | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading saved settings once on load
+    setRem(loadReminder());
+    reminderSupported().then(setCanRemind);
+  }, []);
+  const applyRem = async (next: Reminder) => {
+    const r = await setReminder(next);
+    if (r.ok) {
+      setRem(next);
+      setRemNote(next.on ? `Reminder set for ${String(next.hour).padStart(2, '0')}:${String(next.minute).padStart(2, '0')} every day.` : 'Reminder off.');
+    } else setRemNote(r.message ?? 'Could not set the reminder.');
+  };
 
   const load = () => {
     setLog(loadHunt());
@@ -69,12 +88,30 @@ export function Me({ mode, setMode, onUpload, page, setPage, onIntro }: { mode: 
     }
   };
 
+  const testNet = async () => {
+    setTesting(true);
+    setNet(null);
+    try {
+      const t0 = Date.now();
+      const r = await fetch(`${API}/api/catalog`, { signal: AbortSignal.timeout(60000) });
+      const j = (await r.json().catch(() => null)) as { hosts?: unknown[]; source?: string; error?: string } | null;
+      if (!r.ok) setNet(`The server answered ${r.status}${j?.error ? `: ${j.error}` : ''}.`);
+      else setNet(`Connected in ${((Date.now() - t0) / 1000).toFixed(1)} s. ${Array.isArray(j?.hosts) ? j.hosts.length.toLocaleString() : '?'} stars received.`);
+    } catch (e) {
+      setNet(`Could not reach ${API || 'the server'}: ${(e as Error).message}. Check the address, the internet connection, and that the website is deployed.`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const reset = () => {
     try {
       KEYS.forEach((k) => localStorage.removeItem(k));
     } catch {
       /* blocked storage: nothing to clear */
     }
+    void clearReminder();
+    setRem({ on: false, hour: 18, minute: 0 });
     load();
     setSure(false);
     setNote('Your progress was erased from this phone.');
@@ -197,6 +234,26 @@ export function Me({ mode, setMode, onUpload, page, setPage, onIntro }: { mode: 
           <Row title="Share AstroPulse" onClick={shareApp} />
           <Row title="Rate on Google Play" onClick={() => window.open(PLAY_URL, '_blank', 'noopener')} />
         </div>
+      </section>
+
+      {canRemind ? (
+        <section className="panel rounded-xl p-4" aria-label="Daily reminder">
+          <div className="eyebrow">Daily reminder</div>
+          <p className="mt-2 text-[15px] text-[#c9c9d2]">One quiet nudge a day when the new puzzle is ready. Stays on this phone.</p>
+          <div className="mt-3 flex items-center gap-3">
+            <label htmlFor="rem-t" className="text-sm font-semibold text-white">Time</label>
+            <input id="rem-t" type="time" className="min-h-11 rounded-lg border border-white/15 bg-[#050506] px-3 font-mono text-white" value={`${String(rem.hour).padStart(2, '0')}:${String(rem.minute).padStart(2, '0')}`} onChange={(e) => { const [h, m] = e.target.value.split(':').map(Number); if (Number.isFinite(h) && Number.isFinite(m)) { const next = { ...rem, hour: h!, minute: m! }; if (rem.on) void applyRem(next); else setRem(next); } }} />
+          </div>
+          <button type="button" aria-pressed={rem.on} className={`${rem.on ? 'pill' : 'pill-primary'} mt-3 min-h-12 w-full`} onClick={() => applyRem({ ...rem, on: !rem.on })}>{rem.on ? 'Turn reminder off' : 'Remind me daily'}</button>
+          {remNote ? <p className="mt-2 text-sm text-[#b4b4be]" role="status">{remNote}</p> : null}
+        </section>
+      ) : null}
+
+      <section className="panel rounded-xl p-4" aria-label="NASA connection">
+        <div className="eyebrow">NASA connection</div>
+        <p className="mt-2 text-[15px] text-[#c9c9d2]">{NO_SERVER ? 'This app was built without a data server address, so it uses its built-in sample of stars.' : `Data server: ${API || 'this website'}`}</p>
+        {NO_SERVER ? null : <button type="button" className="pill mt-3 min-h-12 w-full" disabled={testing} onClick={testNet}>{testing ? 'Testing…' : 'Test connection'}</button>}
+        {net ? <p className="mt-2 text-sm text-[#b4b4be]" role="status">{net}</p> : null}
       </section>
 
       <section className="panel rounded-xl p-4" aria-label="About">

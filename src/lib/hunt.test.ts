@@ -91,3 +91,12 @@ describe('progress', () => {
     expect(f.map((x) => x[0])).toEqual(['Year', 'Mass', 'Orbit', 'Distance']);
   });
 });
+
+import { inGentlePeriod } from './hunt';
+describe('gentle start', () => {
+  it('is gentle for new players and ends after 7 days', () => {
+    expect(inGentlePeriod({ days: {}, practice: 0 }, 100)).toBe(true);
+    expect(inGentlePeriod({ days: { '100': { pts: 50, verdict: 'planet' } }, practice: 0 }, 106)).toBe(true);
+    expect(inGentlePeriod({ days: { '100': { pts: 50, verdict: 'planet' } }, practice: 0 }, 107)).toBe(false);
+  });
+});

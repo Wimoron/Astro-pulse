@@ -32,6 +32,7 @@ export function PrivacyText() {
       </ul>
 
       <h2 className={H}>Files you choose to open</h2>
+      <p className={P}>The optional daily reminder is a notification scheduled on your phone. The app asks Android for permission first, the time you pick is stored only on your device, and nothing about it is sent to any server. You can turn it off in Me.</p>
       <p className={P}>“Use my own data” reads a CSV file you pick. It is processed on your device and not uploaded.</p>
 
       <h2 className={H}>Sharing</h2>

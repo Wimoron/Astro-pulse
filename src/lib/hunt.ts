@@ -23,6 +23,13 @@ const WEEK_TIER: Tier[] = [2, 0, 0, 1, 1, 2, 3]; // Sunday first
 export function dayIndex(d = new Date()): number {
   return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
 }
+/** New players start gently: Easy for their first 7 days of play, then the normal weekly mix. */
+export const GENTLE_DAYS = 7;
+export function inGentlePeriod(l: HuntLog, today: number): boolean {
+  const played = Object.keys(l.days).map(Number).filter((n) => Number.isFinite(n));
+  if (!played.length) return true;
+  return today - Math.min(...played) < GENTLE_DAYS;
+}
 export function tierForDay(day: number): Tier {
   return WEEK_TIER[(day + 4) % 7]!; // day 0 (1 Jan 1970) was a Thursday
 }

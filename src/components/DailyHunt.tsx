@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Plot } from './Plot';
 import { Meter } from './methods/ui';
-import { autoPeriod, cleaned, dayIndex, foldAt, makePuzzle, rank, score, TIER_NAME, tierForDay, type HuntLog, type Puzzle, type Score, type Tier, type Verdict } from '@/lib/hunt';
+import { autoPeriod, cleaned, dayIndex, foldAt, makePuzzle, rank, score, TIER_NAME, tierForDay, inGentlePeriod, type HuntLog, type Puzzle, type Score, type Tier, type Verdict } from '@/lib/hunt';
 import { shareCard } from '@/lib/card';
 import { binFolded, oddEven, secondaryEclipse } from '@/lib/physics';
 import { streak } from '@/lib/hunt';
@@ -114,7 +114,8 @@ export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) =>
   const today = useMemo(() => dayIndex(), []);
   const [practiceSeed, setPracticeSeed] = useState<number | null>(null);
   const seed = practiceSeed ?? today;
-  const tier: Tier = practiceSeed === null ? tierForDay(today) : ((practiceSeed % 4) as Tier);
+  const gentle = useMemo(() => inGentlePeriod(log, today), [log, today]);
+  const tier: Tier = gentle ? 0 : practiceSeed === null ? tierForDay(today) : ((practiceSeed % 4) as Tier);
   const method: Method = practiceSeed === null ? methodForDay(today) : methodForSeed(practiceSeed);
   const puzzle = useMemo(() => {
     switch (method) {
