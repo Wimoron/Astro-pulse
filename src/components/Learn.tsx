@@ -35,11 +35,11 @@ function Hero({ className = '' }: { className?: string }) {
   );
 }
 
-export function Learn({ onPractice, onSky, onCatalog, onHunt, counts, total, status }: { onPractice: (m: Method) => void; onSky: () => void; onCatalog: () => void; onHunt: () => void; counts: Record<Method, number>; total: number; status: { source: 'live' | 'saved' | 'sample'; updated: number; fresh: number; error?: string } | null }) {
+export function Learn({ onPractice, onSky, onCatalog, onHunt, dash, counts, total, status }: { onPractice: (m: Method) => void; onSky: () => void; onCatalog: () => void; onHunt: () => void; dash?: boolean; counts: Record<Method, number>; total: number; status: { source: 'live' | 'saved' | 'sample'; updated: number; fresh: number; error?: string } | null }) {
   return (
     <div className="mx-auto max-w-6xl pb-10 md:px-8 md:pb-16">
       {/* Hero */}
-      <section className="relative grid items-center md:min-h-[620px] md:grid-cols-[minmax(0,6fr)_minmax(0,6fr)_minmax(0,4fr)] md:py-14" aria-labelledby="learn-title">
+      {dash ? null : <section className="relative grid items-center md:min-h-[620px] md:grid-cols-[minmax(0,6fr)_minmax(0,6fr)_minmax(0,4fr)] md:py-14" aria-labelledby="learn-title">
         <div className="relative z-10 px-4 pt-4 md:px-0 md:pt-0">
           {status ? (
             <button type="button" onClick={onCatalog} className="mb-4 inline-flex min-h-9 items-center gap-2 rounded-full bg-[#14141a] px-3 py-1.5 hud !text-[11px] !tracking-[0.12em] uppercase text-white" title={status.error ?? 'Open the star catalog'}>
@@ -79,12 +79,12 @@ export function Learn({ onPractice, onSky, onCatalog, onHunt, counts, total, sta
             </li>
           ))}
         </ul>
-      </section>
+      </section>}
 
       {/* Methods */}
       <section aria-labelledby="pick" className="px-4 md:px-0">
-        <div className="flex items-baseline justify-between"><span className="eyebrow">Choose a method</span><span className="hud">5 methods</span></div>
-        <h2 id="pick" className="mt-1 text-2xl leading-tight text-white md:text-4xl">Ten minutes each. One real planet at the end.</h2>
+        <div className="flex items-baseline justify-between"><span className="eyebrow">Learn</span><span className="hud">5 methods</span></div>
+        <h2 id="pick" className="mt-1 text-2xl leading-tight text-white md:text-4xl">Five ways to find a planet</h2>
 
         {/* Featured: the easiest method */}
         {(() => {

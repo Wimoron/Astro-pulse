@@ -120,7 +120,7 @@ export function Catalog(p: {
               {h.t === 'other' ? <span className="chip plain shrink-0" style={{ ['--c' as string]: '#b4b4be' }}>{h.om ?? 'Other'}</span> : <span className="chip shrink-0" style={{ ['--c' as string]: METHODS[h.t].color }}>{METHODS[h.t].short}</span>}
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="cell"><div className="k">Size</div><div className="v !text-[13px]">{h.r != null ? `${fmt(h.r)} R⊕` : h.mj != null ? `${fmt(h.mj)} Mj` : '–'}</div></div>
+              <div className="cell"><div className="k">Size</div><div className="v !text-[13px]">{h.r != null ? `${fmt(h.r)} R⊕` : h.mj != null ? (h.mj < 0.1 ? `${fmt(h.mj * 317.8)} M⊕` : `${fmt(h.mj)} Mj`) : '–'}</div></div>
               <div className="cell"><div className="k">Orbit</div><div className="v !text-[13px]">{h.p != null ? `${fmt(h.p)} d` : '–'}</div></div>
               <div className="cell"><div className="k">Planets</div><div className="v !text-[13px]">{h.np ?? '–'}</div></div>
             </div>

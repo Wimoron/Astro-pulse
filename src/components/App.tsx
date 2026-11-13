@@ -12,12 +12,15 @@ import { Hunt } from './Hunt';
 import { type Method } from '@/lib/methods';
 import { Lab, type LabState, type Mode } from './Lab';
 import { FindStar } from './FindStar';
-import { Learn } from './Learn';
+import { Home, type LastOpened } from './Home';
+import { Me, type MePage } from './Me';
+import { Onboarding, seenIntro } from './Onboarding';
 import { MethodLab } from './MethodLab';
 import { SkyView, type ConstellationRec, type StarRec } from './SkyView';
 import { TelescopeView } from './TelescopeView';
 
-type View = 'learn' | 'sky' | 'catalog' | 'hunt' | 'scope' | 'lab' | 'method';
+type View = 'home' | 'sky' | 'catalog' | 'hunt' | 'me' | 'scope' | 'lab' | 'method';
+const LAST_KEY = 'ap-last-v1';
 
 const FEATURED_NAMES = new Set(['HD 209458', 'WASP-18', 'Pi Mensae', 'Kepler-10', 'Kepler-186']);
 const PRACTICE_START: Record<Exclude<Method, 'transit'>, string> = { rv: '51 Pegasi', imaging: 'Beta Pictoris', microlensing: 'OGLE-2003-BLG-235', astrometry: 'Practice star Q' };
@@ -34,7 +37,7 @@ function readHash(): Record<string, string> {
 
 export default function App() {
   const [mode, setMode] = useState<Mode>('beginner');
-  const [view, setView] = useState<View>('learn');
+  const [view, setView] = useState<View>('home');
   const [catalog, setCatalog] = useState<CatalogState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [checking, setChecking] = useState<string | null>(null);
@@ -48,7 +51,11 @@ export default function App() {
   const [extra, setExtra] = useState<SkyTarget[]>([]);
   const [noData, setNoData] = useState<Set<string>>(new Set());
   const [finding, setFinding] = useState(false);
-  const [menu, setMenu] = useState(false);
+  const [intro, setIntro] = useState(false);
+  const [mePage, setMePage] = useState<MePage>('main');
+  const [online, setOnline] = useState(true);
+  const [last, setLast] = useState<LastOpened | null>(null);
+  const [skyHint, setSkyHint] = useState(false);
   const [uploaded, setUploaded] = useState<Target | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -66,6 +73,27 @@ export default function App() {
         setCons(c as ConstellationRec[]);
       })
       .catch(() => setSkyErr('Could not load the star map.'));
+  }, []);
+
+  // First launch: short intro. Also remember the last study target and track the connection.
+  useEffect(() => {
+    if (!seenIntro()) setIntro(true);
+    try {
+      const j = JSON.parse(localStorage.getItem(LAST_KEY) ?? 'null') as LastOpened | null;
+      if (j && typeof j.id === 'string' && typeof j.name === 'string') setLast(j);
+      if (localStorage.getItem('ap-skyhint') !== '1') setSkyHint(true);
+    } catch {
+      /* blocked storage */
+    }
+    setOnline(navigator.onLine);
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
   }, []);
 
   // Every known planet host: live from NASA when possible.
@@ -90,7 +118,7 @@ export default function App() {
       setSelectedId(h.t);
       setLabInit({ w: Number(h.w) || undefined, o: Number(h.o) || undefined, c: Number(h.c) || undefined, p: Number(h.p) || 0, s: Number(h.s) || 0 });
       if (h.v === 'lab' || h.v === 'scope' || h.v === 'method' || h.v === 'sky') setView(h.v);
-    } else if (h.v === 'sky' || h.v === 'learn' || h.v === 'hunt') setView(h.v);
+    } else if (h.v === 'sky' || h.v === 'hunt' || h.v === 'catalog' || h.v === 'me') setView(h.v);
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hostsDone]);
@@ -131,6 +159,16 @@ export default function App() {
       setView('method');
     }
   };
+  useEffect(() => {
+    if (!sky || sky.custom || !(view === 'scope' || view === 'lab' || view === 'method')) return;
+    const l: LastOpened = { id: sky.id, name: sky.name, method: sky.method };
+    setLast(l);
+    try {
+      localStorage.setItem(LAST_KEY, JSON.stringify(l));
+    } catch {
+      /* blocked storage */
+    }
+  }, [sky, view]);
   const isReal = !!(sky && realCurves[sky.id]);
   const standIn = useMemo<LightCurve | null>(() => (sky && sky.method === 'transit' ? standInCurve(sky) : null), [sky]);
   const curve = sky ? (realCurves[sky.id] ?? (sky.custom ? null : standIn)) : null;
@@ -157,7 +195,9 @@ export default function App() {
 
   const share = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      // In the Android app the page address is local, so link to the website copy instead.
+      const base = process.env.NEXT_PUBLIC_STATIC === '1' ? (process.env.NEXT_PUBLIC_API_BASE ?? '') : window.location.origin;
+      await navigator.clipboard.writeText(base ? `${base}/${window.location.hash}` : window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -190,7 +230,7 @@ export default function App() {
 
   const isTransit = !sky || sky.method === 'transit';
   const go = (v: View) => {
-    if (v === 'sky' || v === 'learn' || v === 'catalog' || v === 'hunt') setView(v);
+    if (v === 'sky' || v === 'home' || v === 'catalog' || v === 'hunt' || v === 'me') setView(v);
     else if (v === 'lab' && sky && !isTransit) setView('method');
     else if (sky) setView(v);
   };
@@ -205,18 +245,51 @@ export default function App() {
   };
 
   const nav: Array<[View, string]> = [
-    ['learn', 'Learn'],
+    ['home', 'Home'],
     ['sky', 'Sky'],
-    ['catalog', 'Catalog'],
+    ['catalog', 'Planets'],
     ['hunt', 'Hunt'],
+    ['me', 'Me'],
     ['scope', 'Telescope'],
     ['lab', 'Lab'],
   ];
 
+  // Android back button: close things, step back, go home, and only then leave the app.
+  const backRef = useRef<() => boolean>(() => false);
+  useEffect(() => {
+    backRef.current = () => {
+    if (intro) return true;
+    if (finding) { setFinding(false); return true; }
+    if (view === 'me' && mePage !== 'main') { setMePage('main'); return true; }
+    if (view === 'lab') { setView(sky && isTransit ? 'scope' : sky ? 'method' : 'sky'); return true; }
+    if (view === 'scope') { setView('sky'); return true; }
+    if (view === 'method') { setView('home'); return true; }
+    if (view !== 'home') { setView('home'); return true; }
+    return false;
+    };
+  });
+  useEffect(() => {
+    let remove: (() => void) | undefined;
+    let gone = false;
+    import('@capacitor/core').then(async ({ Capacitor }) => {
+      if (!Capacitor.isNativePlatform()) return;
+      const { App: CapApp } = await import('@capacitor/app');
+      const h = await CapApp.addListener('backButton', () => {
+        if (!backRef.current()) void CapApp.exitApp();
+      });
+      if (gone) void h.remove();
+      else remove = () => void h.remove();
+    }).catch(() => undefined);
+    return () => {
+      gone = true;
+      remove?.();
+    };
+  }, []);
+
   return (
     <div className="flex h-[100dvh] flex-col">
-      <header className="glass-bar relative z-20 flex shrink-0 items-center gap-x-3 gap-y-2 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] md:px-5">
-        <button type="button" onClick={() => setView('learn')} className="mr-3 font-[family-name:var(--font-heading)] text-[15px] font-extrabold uppercase leading-none tracking-[0.2em] text-white" aria-label="AstroPulse, home">
+      <header className="glass-bar relative z-20 flex shrink-0 items-center gap-x-3 gap-y-2 px-4 pb-2 pt-[calc(0.5rem+var(--sat))] md:px-5">
+        <button type="button" onClick={() => setView('home')} className="mr-3 font-[family-name:var(--font-heading)] text-[15px] font-extrabold uppercase leading-none tracking-[0.2em] text-white" aria-label="AstroPulse, home">
           Astro<span className="text-[#ff7a45]">Pulse</span>
         </button>
         <nav aria-label="Where you are" className="hide-scroll hidden max-w-full gap-1 overflow-x-auto md:flex">
@@ -238,8 +311,7 @@ export default function App() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2 md:hidden">
-          <button type="button" onClick={() => setFinding(true)} className="min-h-10 pill bg-[#1c1c22] px-3.5 font-heading text-[11px] font-bold uppercase tracking-[0.1em]">Find a star</button>
-          <button type="button" onClick={() => setMenu(true)} className="min-h-10 min-w-10 pill px-3" aria-label="More options" aria-haspopup="dialog">⋯</button>
+          <button type="button" onClick={() => setFinding(true)} className="min-h-11 pill bg-[#1c1c22] px-4 font-heading text-[11px] font-bold uppercase tracking-[0.1em]">Find a star</button>
         </div>
         <div className="ml-auto hidden flex-wrap items-center gap-2 md:flex">
           <div role="group" aria-label="Difficulty of explanations" className="flex overflow-hidden rounded-lg border border-white/22">
@@ -256,7 +328,6 @@ export default function App() {
             ))}
           </div>
           <button type="button" onClick={() => setFinding(true)} className="min-h-10 pill px-3.5">Find a star</button>
-          <input ref={fileRef} type="file" accept=".csv,.txt,text/csv" className="hidden" onChange={(e) => onUpload(e.target.files?.[0])} />
           <button type="button" onClick={() => fileRef.current?.click()} className="min-h-10 pill px-3.5">
             <span className="sm:hidden">Upload</span>
             <span className="hidden sm:inline">Use my own data</span>
@@ -273,10 +344,29 @@ export default function App() {
         </p>
       ) : null}
 
+      {!online ? <p className="border-b border-[#fbbf24]/40 bg-[#2a2210] px-4 py-2 text-sm text-[#fde68a]" role="status">You are offline. Live NASA data and real candidates wait until you reconnect. Everything else still works.</p> : null}
+      <input ref={fileRef} type="file" accept=".csv,.txt,text/csv" className="hidden" aria-hidden="true" tabIndex={-1} onChange={(e) => onUpload(e.target.files?.[0])} />
+
       <main className="min-h-0 flex-1">
-        {view === 'learn' && (
-          <div className="h-full overflow-y-auto">
-            <Learn onPractice={practice} onSky={() => setView('sky')} onCatalog={() => setView('catalog')} onHunt={() => setView('hunt')} counts={counts} total={catalog?.hosts.length ?? 0} status={catalog ? { source: catalog.source, updated: catalog.updated, fresh: catalog.fresh.length, error: catalog.error } : null} />
+        {view === 'home' && (
+          <div className="h-full overflow-y-auto overscroll-contain">
+            <Home
+              last={last}
+              onContinue={() => { if (last) { setSelectedId(last.id); setView(last.method === 'transit' ? 'scope' : 'method'); } }}
+              onPractice={practice}
+              onSky={() => setView('sky')}
+              onCatalog={() => setView('catalog')}
+              onHunt={() => setView('hunt')}
+              onMe={() => { setMePage('main'); setView('me'); }}
+              counts={counts}
+              total={catalog?.hosts.length ?? 0}
+              status={catalog ? { source: catalog.source, updated: catalog.updated, fresh: catalog.fresh.length, error: catalog.error } : null}
+            />
+          </div>
+        )}
+        {view === 'me' && (
+          <div className="h-full overflow-y-auto overscroll-contain">
+            <Me mode={mode} setMode={setMode} onUpload={() => fileRef.current?.click()} page={mePage} setPage={setMePage} onIntro={() => setIntro(true)} />
           </div>
         )}
         {view === 'catalog' && catalog && (
@@ -299,12 +389,17 @@ export default function App() {
         )}
         {view === 'method' && sky && sky.method !== 'transit' && (
           <div className="h-full overflow-y-auto">
-            <MethodLab target={sky} siblings={siblings} onPick={setSelectedId} onBack={() => setView('learn')} />
+            <MethodLab target={sky} siblings={siblings} onPick={setSelectedId} onBack={() => setView('home')} />
           </div>
         )}
         {view === 'sky' && (
           <div className="relative h-full">
             {stars.length === 0 && !skyErr ? <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#03060d] text-lg text-[#c5d1ea]" role="status">Loading the sky…</div> : null}
+            {skyHint && !selectedId && stars.length > 0 ? (
+              <button type="button" className="absolute inset-x-4 bottom-4 z-10 rounded-xl border border-white/15 bg-[#0a0a0d]/95 p-3 text-center text-sm text-white" onClick={() => { setSkyHint(false); try { localStorage.setItem('ap-skyhint', '1'); } catch { /* blocked storage */ } }}>
+                Drag to look around, pinch to zoom, tap a star to see its planets. <span className="text-[#8a8a96]">Tap to dismiss</span>
+              </button>
+            ) : null}
             {skyErr ? <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#03060d] text-lg text-[#fecaca]" role="alert">{skyErr}</div> : null}
             <SkyView stars={stars} constellations={cons} selectedId={selectedId} onSelect={setSelectedId} onOpenTelescope={(id) => { setSelectedId(id); setView('scope'); }} onStudy={(id) => { setSelectedId(id); setView('method'); }} realIds={realIds} checking={checking} targets={all} featured={SKY_TARGETS} />
           </div>
@@ -334,32 +429,18 @@ export default function App() {
           </div>
         )}
       </main>
-      <nav aria-label="Main" className="glass-bar relative z-20 grid shrink-0 grid-cols-5 border-t border-white/10 pb-[env(safe-area-inset-bottom)] md:hidden">
-        {([['learn', 'Learn', 'M12 3 2 8l10 5 10-5-10-5Zm-6 9v4c0 1.5 2.7 3 6 3s6-1.5 6-3v-4'], ['sky', 'Sky', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4 1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7Z'], ['catalog', 'Catalog', 'M4 6h16M4 12h16M4 18h16'], ['hunt', 'Hunt', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 3v2'], ['study', 'Study', 'M3 19 9 5l3 8 3-4 6 10H3Z']] as const).map(([v, label, d]) => {
-          const current = v === 'study' ? view === 'scope' || view === 'lab' || view === 'method' : view === v;
+      <nav aria-label="Main" className="glass-bar relative z-20 grid shrink-0 grid-cols-5 border-t border-white/10 pb-[var(--sab)] md:hidden">
+        {([['home', 'Home', 'M3 11 12 3l9 8M5 10v10h5v-6h4v6h5V10'], ['sky', 'Sky', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4 1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7Z'], ['catalog', 'Planets', 'M4 6h16M4 12h16M4 18h16'], ['hunt', 'Hunt', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 3v2'], ['me', 'Me', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 9c0-4 3.6-6 8-6s8 2 8 6']] as const).map(([v, label, d]) => {
+          const current = view === v || (v === 'sky' && (view === 'scope' || view === 'lab' || view === 'method'));
           return (
-            <button key={v} type="button" aria-current={current ? 'page' : undefined} onClick={() => (v === 'study' ? (sky ? setView(isTransit ? 'scope' : 'method') : setView('sky')) : go(v))} className={`flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${current ? 'text-white' : 'text-[#8a8a96]'}`}>
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={current ? 2.2 : 1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+            <button key={v} type="button" aria-current={current ? 'page' : undefined} onClick={() => { if (v === 'me') setMePage('main'); go(v); }} className={`flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${current ? 'text-white' : 'text-[#8a8a96]'}`}>
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={current ? 2.2 : 1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
               {label}
             </button>
           );
         })}
       </nav>
-      {menu ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/70 md:hidden" role="dialog" aria-modal="true" aria-label="More options" onClick={(e) => e.target === e.currentTarget && setMenu(false)}>
-          <div className="panel w-full rounded-t-2xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-            <div className="eyebrow">Explanations</div>
-            <div role="group" aria-label="Difficulty of explanations" className="mt-2 grid grid-cols-2 gap-2">
-              {(['beginner', 'expert'] as Mode[]).map((m) => (<button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className="pill min-h-12">{m}</button>))}
-            </div>
-            <div className="mt-4 grid gap-2">
-              <button type="button" className="pill min-h-12" onClick={() => { setMenu(false); fileRef.current?.click(); }}>Use my own data</button>
-              <button type="button" className="pill min-h-12" onClick={() => { share(); setMenu(false); }}>{copied ? 'Link copied' : 'Share this view'}</button>
-              <button type="button" className="pill min-h-12" onClick={() => setMenu(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {intro ? <Onboarding onDone={() => setIntro(false)} /> : null}
     </div>
   );
 }

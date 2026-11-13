@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android (APK + Play Store bundle)
 
 on:
   push:
@@ -6,8 +6,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  apk:
+  android:
     runs-on: ubuntu-latest
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 1.0.${{ github.run_number }}
+      KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,14 +23,32 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci
+      - run: npm run check
       # Set API_BASE (Settings > Secrets and variables > Actions > Variables) to your deployed site, e.g. https://astropulse.vercel.app
-      # for live NASA data. Without it the app still works, using its built-in sample of 87 stars.
       - run: npm run android:sync
         env:
           NEXT_PUBLIC_API_BASE: ${{ vars.API_BASE }}
-      - run: chmod +x gradlew && ./gradlew assembleDebug
+      - name: Debug APK (for testing on your own phone)
+        run: chmod +x gradlew && ./gradlew assembleDebug
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
           name: AstroPulse-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      # Signed Play Store bundle: only runs once the four keystore secrets exist (see PLAY_STORE.md).
+      - name: Signed release bundle (.aab)
+        if: ${{ env.KS_B64 != '' }}
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks"
+          chmod +x gradlew && ./gradlew bundleRelease
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        if: ${{ hashFiles('android/app/build/outputs/bundle/release/app-release.aab') != '' }}
+        with:
+          name: AstroPulse-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab

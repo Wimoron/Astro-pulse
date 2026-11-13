@@ -1,3 +1,5 @@
+> Publishing to Google Play? See **PLAY_STORE.md** for signing, the .aab build and the Console checklist.
+
 # Get the APK
 
 1. Put this project on GitHub (new repo, push everything).

@@ -81,7 +81,7 @@ export function FindStar({ local, onPickLocal, onPick, onClose }: { local: SkyTa
         <p className="mt-2 text-sm text-[#b4b4be]">Type a star name, a TIC number or a TOI number. We fetch its real brightness record from NASA, if it has one.</p>
         <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); void search(q); }}>
           <label className="sr-only" htmlFor="find-q">Star name, TIC or TOI</label>
-          <input id="find-q" ref={input} value={q} onChange={(e) => { setQ(e.target.value); setHits(null); setErr(''); }} placeholder="e.g. TOI-700, TIC 261136679, WASP-121" className="min-h-11 flex-1 rounded-lg border border-white/22 bg-transparent px-3 text-sm text-white placeholder:text-[#6b6b76]" maxLength={60} autoComplete="off" />
+          <input id="find-q" ref={input} value={q} onChange={(e) => { setQ(e.target.value); setHits(null); setErr(''); }} placeholder="e.g. TOI-700, TIC 261136679, WASP-121" className="min-h-11 flex-1 rounded-lg border border-white/22 bg-transparent px-3 text-base text-white placeholder:text-[#6b6b76]" maxLength={60} autoComplete="off" />
           <button type="submit" className="pill-primary min-h-11 px-5" disabled={busy || q.trim().length < 2}>{busy ? 'Looking…' : 'Look up'}</button>
         </form>
         <div className="mt-3 flex flex-wrap gap-2">

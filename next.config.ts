@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
 import type { NextConfig } from 'next';
+
+const version = (JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string }).version;
 
 const prod = process.env.NODE_ENV === 'production';
 const csp = [
@@ -18,6 +21,7 @@ const staticBuild = process.env.STATIC_EXPORT === '1';
 
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
+  env: { NEXT_PUBLIC_APP_VERSION: version },
   ...(staticBuild ? { output: 'export' as const, trailingSlash: true } : {}),
   async headers() {
     if (staticBuild) return [];
@@ -30,7 +34,7 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           ...(prod ? [{ key: 'Content-Security-Policy', value: csp }] : []),
         ],
       },

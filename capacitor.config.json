@@ -3,5 +3,7 @@
   "appName": "AstroPulse",
   "webDir": "out",
   "backgroundColor": "#050506",
-  "server": { "androidScheme": "https" }
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },
+  "plugins": { "SplashScreen": { "launchShowDuration": 0 } }
 }
