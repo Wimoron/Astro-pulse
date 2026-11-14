@@ -38,6 +38,10 @@ export function Home(p: Props) {
   const done = log.days[String(today)];
   const days = streak(log, today);
   const st = standing(xp);
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = today - 6 + i;
+    return { day: d, letter: 'SMTWTFS'[new Date(d * 86400000).getUTCDay()]!, done: !!log.days[String(d)], today: d === today };
+  });
 
   return (
     <div className="flex min-h-full flex-col">
@@ -68,7 +72,19 @@ export function Home(p: Props) {
         </div>
 
         <div className="relative z-10 mt-8 w-full max-w-sm">
+          <div className="mb-4 grid grid-cols-7 gap-1.5" role="list" aria-label="Last 7 days">
+            {week.map((w) => (
+              <div key={w.day} role="listitem" aria-label={`${w.letter}: ${w.done ? 'played' : w.today ? 'today' : 'not played'}`} className="flex flex-col items-center gap-1 text-[10px] text-[#8a8a96]">
+                <span aria-hidden="true" className={`grid aspect-square w-full max-w-9 place-items-center rounded-full border-[1.5px] text-[13px] ${w.done ? 'border-[#ffaa46]/60 bg-[#ffaa46]/15 text-[#ffaa46]' : w.today ? 'border-white shadow-[0_0_0_3px_rgba(255,255,255,.08)]' : 'border-white/15'}`}>{w.done ? '✦' : ''}</span>
+                {w.letter}
+              </div>
+            ))}
+          </div>
           <button type="button" className="pill-primary min-h-14 w-full text-base" onClick={p.onHunt}>{done ? 'Practise more' : 'Play today’s hunt'}</button>
+          <button type="button" onClick={p.onMe} className="panel mt-3 block w-full rounded-xl p-3 text-left" aria-label={`Rank ${st.rank}, ${xp} XP. Open progress`}>
+            <span className="flex items-baseline justify-between"><span className="text-[13px] font-bold text-white">{st.rank}</span><span className="font-mono text-xs text-[#8a8a96]">{xp} XP</span></span>
+            <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-gradient-to-r from-[#ffaa46] to-[#fbbf24]" style={{ width: `${Math.max(3, st.pct * 100)}%` }} /></span>
+          </button>
           {p.last ? (
             <button type="button" onClick={p.onContinue} className="mt-2 min-h-11 w-full text-sm font-semibold text-[#b4b4be]">Continue {p.last.name} →</button>
           ) : (

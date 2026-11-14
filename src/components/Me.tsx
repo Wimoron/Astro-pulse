@@ -165,6 +165,15 @@ export function Me({ mode, setMode, onUpload, page, setPage, onIntro }: { mode: 
         <div className="cell"><div className="k">Average</div><div className="v">{avg}</div></div>
       </div>
 
+      <section className="panel rounded-xl p-4" aria-label="Streak calendar">
+        <div className="flex items-center justify-between"><span className="eyebrow">Last 4 weeks</span><span className="text-xs text-[#8a8a96]">{streak(log, today)} day streak</span></div>
+        <div className="mt-3 grid grid-cols-7 gap-1.5">
+          {Array.from({ length: 28 }, (_, i) => today - 27 + i).map((d) => (
+            <div key={d} aria-label={log.days[String(d)] ? `Played, score ${log.days[String(d)]!.pts}` : 'Not played'} className={`grid h-8 place-items-center rounded-md border text-[10px] ${log.days[String(d)] ? 'border-[#ffaa46]/50 bg-[#ffaa46]/15 text-[#ffaa46]' : d === today ? 'border-white/60 text-white' : 'border-white/10 text-[#5b5b65]'}`}>{new Date(d * 86400000).getUTCDate()}</div>
+          ))}
+        </div>
+      </section>
+
       <section className="panel rounded-xl p-4" aria-label="Badges">
         <div className="eyebrow">Badges · {bs.filter((b) => b.got).length} of {bs.length}</div>
         <ul className="mt-3 grid grid-cols-2 gap-2">

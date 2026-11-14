@@ -212,3 +212,11 @@ code, .font-mono {
 @keyframes hs-cross{0%{transform:translateX(-112px);opacity:1}45%{transform:translateX(112px);opacity:1}46%,100%{transform:translateX(112px);opacity:0}}
 @keyframes hs-dip{0%,12%{opacity:1}16%,29%{opacity:.7}33%,100%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.hs-star,.hs-planet{animation:none}.hs-planet{transform:translateX(-30px)}}
+
+/* Found-a-planet moment */
+.found .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.found .confetti i{position:absolute;top:-12px;width:6px;height:10px;border-radius:2px;animation:ap-fall 1.8s ease-in forwards}
+@keyframes ap-fall{to{transform:translateY(420px) rotate(540deg);opacity:.2}}
+.found-ball{animation:ap-float 4s ease-in-out infinite}
+@keyframes ap-float{50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){.found .confetti{display:none}.found-ball{animation:none}}

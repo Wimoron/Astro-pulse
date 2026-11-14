@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plot } from './Plot';
 import { Meter } from './methods/ui';
 import { autoPeriod, cleaned, dayIndex, foldAt, makePuzzle, rank, score, TIER_NAME, tierForDay, inGentlePeriod, type HuntLog, type Puzzle, type Score, type Tier, type Verdict } from '@/lib/hunt';
 import { shareCard } from '@/lib/card';
+import { ScoreRing } from './ScoreRing';
+import { FoundCard } from './FoundCard';
 import { binFolded, oddEven, secondaryEclipse } from '@/lib/physics';
 import { streak } from '@/lib/hunt';
 import { AstroView, ImgView, MicroView, RvView } from './HuntViews';
@@ -110,6 +112,31 @@ const METHOD_INFO: Record<Method, { label: string; color: string; blurb: string 
   imaging: { label: 'Photo', color: '#f472b6', blurb: 'Two telescope pictures of a young star. Is one of the dots a planet?' },
 };
 
+const COACH: Record<Method, string> = {
+  transit: 'Slide the repeat time until all the dips pile into one clear notch, then make your call.',
+  rv: 'Slide until the points line up into one smooth wave.',
+  microlensing: 'Show the smooth curve, then look for points that leave it.',
+  astrometry: 'A loop means a planet. A random cloud means nothing.',
+  imaging: 'Swap pictures. A planet’s dot moves. Background stars do not.',
+};
+const COACH_KEY = 'ap-coach-v1';
+function coached(m: Method): boolean {
+  try {
+    return !!(JSON.parse(localStorage.getItem(COACH_KEY) ?? '{}') as Record<string, number>)[m];
+  } catch {
+    return true;
+  }
+}
+function markCoached(m: Method) {
+  try {
+    const j = JSON.parse(localStorage.getItem(COACH_KEY) ?? '{}') as Record<string, number>;
+    j[m] = 1;
+    localStorage.setItem(COACH_KEY, JSON.stringify(j));
+  } catch {
+    /* storage blocked */
+  }
+}
+
 export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) => void }) {
   const today = useMemo(() => dayIndex(), []);
   const [practiceSeed, setPracticeSeed] = useState<number | null>(null);
@@ -127,6 +154,11 @@ export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) =>
     }
   }, [method, seed, tier]);
   const [result, setResult] = useState<Score | null>(null);
+  const [tip, setTip] = useState<Method | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading saved tips once per puzzle type
+    setTip(coached(method) ? null : method);
+  }, [method]);
   const done = practiceSeed === null ? log.days[String(today)] : undefined;
   const info = METHOD_INFO[method];
 
@@ -154,23 +186,41 @@ export function DailyHunt({ log, onLog }: { log: HuntLog; onLog: (l: HuntLog) =>
         <p className="mt-1 text-[15px] text-[#b4b4be]">{info.blurb}</p>
       </div>
 
+      {tip === method && !shown ? (
+        <div className="flex items-start gap-3 rounded-xl border border-[#67e8f9]/25 bg-[#67e8f9]/[0.07] p-3 text-sm text-[#d6f7fc]" role="note">
+          <span aria-hidden="true">✦</span>
+          <span className="min-w-0 flex-1">{COACH[method]}</span>
+          <button type="button" aria-label="Dismiss tip" className="-m-2 grid min-h-11 min-w-11 place-items-center text-lg text-[#8a8a96]" onClick={() => { markCoached(method); setTip(null); }}>×</button>
+        </div>
+      ) : null}
       {method === 'transit' ? <TransitView key={seed} puzzle={puzzle as Puzzle} locked={!!shown} onDone={onDone} /> : null}
       {method === 'rv' ? <RvView key={seed} puzzle={puzzle as ReturnType<typeof makeRv>} locked={!!shown} onDone={onDone} /> : null}
       {method === 'microlensing' ? <MicroView key={seed} puzzle={puzzle as ReturnType<typeof makeMicro>} locked={!!shown} onDone={onDone} /> : null}
       {method === 'astrometry' ? <AstroView key={seed} puzzle={puzzle as ReturnType<typeof makeAstro>} locked={!!shown} onDone={onDone} /> : null}
       {method === 'imaging' ? <ImgView key={seed} puzzle={puzzle as ReturnType<typeof makeImaging>} locked={!!shown} onDone={onDone} /> : null}
       {shown ? (
-        <section className="panel rounded-xl p-4" role="status" aria-label="Result">
-          <div className="eyebrow">{result ? 'Your result' : 'Done for today'}</div>
-          <div className="mt-1 flex items-baseline gap-3">
-            <span className="font-mono text-5xl text-white">{shown.total}</span>
-            <span className="font-heading text-sm font-bold uppercase tracking-[0.1em] text-[#67e8f9]">{rank(shown.total)}</span>
-          </div>
-          {result ? <ul className="mt-3 space-y-1 text-[15px] text-[#c9c9d2]">{result.lines.map((l) => <li key={l}>{l}</li>)}</ul> : <p className="mt-2 text-[15px] text-[#b4b4be]">A new puzzle arrives tomorrow. Keep the streak going, or practise now.</p>}
-          {result ? <p className="mt-3 rounded-lg border border-white/10 bg-[#050506] p-3 text-[15px] text-white">{puzzle.truth.note}</p> : null}
-          <button type="button" className="pill-primary mt-4 min-h-12 w-full" onClick={again}>Another practice puzzle</button>
-          {result ? <button type="button" className="pill mt-2 min-h-12 w-full" onClick={() => shareCard({ kicker: `${puzzle.name} · ${TIER_NAME[tier]}`, title: `I scored ${result.total}: ${rank(result.total)}`, facts: [['Score', `${result.total} / 100`], ['Streak', `${days} ${days === 1 ? 'day' : 'days'}`]], color: '#67e8f9', footer: 'Daily Hunt · AstroPulse' }, 'astropulse-hunt.png').catch(() => undefined)}>Share my result</button> : null}
-        </section>
+        <>
+          {result && puzzle.truth.kind === 'planet' && result.total >= 70 ? (
+            <FoundCard
+              name={`${puzzle.name} b`}
+              color={info.color}
+              facts={[['Method', info.label], ['Year', puzzle.truth.periodDays ? `${puzzle.truth.periodDays < 100 ? puzzle.truth.periodDays.toFixed(1) : Math.round(puzzle.truth.periodDays)} d` : 'n/a'], ['Score', String(result.total)]]}
+            />
+          ) : null}
+          <section className="panel rounded-xl p-4" role="status" aria-label="Result">
+            <div className="eyebrow text-center">{result ? 'Your result' : 'Done for today'}</div>
+            <div className="mt-3"><ScoreRing key={shown.total} value={shown.total} color={shown.total >= 70 ? '#4ade80' : shown.total >= 40 ? '#fbbf24' : '#f472b6'} /></div>
+            <div className="mt-2 text-center font-heading text-lg font-extrabold text-white">{shown.total >= 70 ? '✦ ' : ''}{rank(shown.total)}</div>
+            {result ? <ul className="mt-3 list-disc space-y-1 pl-5 text-[15px] text-[#c9c9d2]">{result.lines.map((l) => <li key={l}>{l}</li>)}</ul> : <p className="mt-2 text-center text-[15px] text-[#b4b4be]">A new puzzle arrives tomorrow. Keep the streak going, or practise now.</p>}
+            {result ? <p className="mt-3 rounded-lg border border-white/10 bg-[#050506] p-3 text-[15px] text-white">{puzzle.truth.note}</p> : null}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="cell"><div className="k">XP earned</div><div className="v">+{practiceSeed === null ? shown.total : 5}</div></div>
+              <div className="cell"><div className="k">Streak</div><div className="v">{days} {days === 1 ? 'day' : 'days'}</div></div>
+            </div>
+            <button type="button" className="pill-primary mt-4 min-h-12 w-full" onClick={again}>Another practice puzzle</button>
+            {result ? <button type="button" className="pill mt-2 min-h-12 w-full" onClick={() => shareCard({ kicker: `${puzzle.name} · ${TIER_NAME[tier]}`, title: `I scored ${result.total}: ${rank(result.total)}`, facts: [['Score', `${result.total} / 100`], ['Streak', `${days} ${days === 1 ? 'day' : 'days'}`]], color: '#67e8f9', footer: 'Daily Hunt · AstroPulse' }, 'astropulse-hunt.png').catch(() => undefined)}>Share my result</button> : null}
+          </section>
+        </>
       ) : null}
     </div>
   );
