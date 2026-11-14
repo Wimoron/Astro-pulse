@@ -204,3 +204,11 @@ code, .font-mono {
 @keyframes ping { 75%, 100% { transform: scale(2.2); opacity: 0; } }
 .ping { animation: ping 1.8s cubic-bezier(0,0,.2,1) infinite; }
 @media (prefers-reduced-motion: reduce) { .ping { animation: none; } }
+
+/* Home hero: a planet crosses the star and the star dims, in step. */
+.home-glow{position:absolute;left:50%;top:38%;width:130vw;max-width:720px;aspect-ratio:1;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(255,170,70,.16),rgba(255,170,70,0));pointer-events:none}
+.hs-star{animation:hs-dip 7s linear infinite;transform-origin:120px 100px}
+.hs-planet{animation:hs-cross 7s linear infinite}
+@keyframes hs-cross{0%{transform:translateX(-112px);opacity:1}45%{transform:translateX(112px);opacity:1}46%,100%{transform:translateX(112px);opacity:0}}
+@keyframes hs-dip{0%,12%{opacity:1}16%,29%{opacity:.7}33%,100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.hs-star,.hs-planet{animation:none}.hs-planet{transform:translateX(-30px)}}

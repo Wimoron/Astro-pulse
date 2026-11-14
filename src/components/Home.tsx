@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Learn } from './Learn';
 import { dayIndex, loadHunt, streak, type HuntLog } from '@/lib/hunt';
 import { loadFindings } from '@/lib/candidates';
 import { loadCollection, standing, xpOf } from '@/lib/progress';
@@ -41,69 +40,65 @@ export function Home(p: Props) {
   const st = standing(xp);
 
   return (
-    <div>
+    <div className="flex min-h-full flex-col">
       <h1 className="sr-only">AstroPulse home</h1>
-      <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 pt-4">
-        <button type="button" onClick={p.onMe} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-left">
-          <span className="min-w-0">
-            <span className="eyebrow block">Welcome</span>
-            <span className="block whitespace-nowrap font-heading text-xl font-extrabold text-white">{st.rank}</span>
-          </span>
-          <span className="flex items-center gap-2 whitespace-nowrap">
-            {days > 0 ? <span className="chip plain" style={{ ['--c' as string]: '#fbbf24' }}>{days} day streak</span> : null}
-            <span className="font-mono text-sm text-[#b4b4be]">{xp} XP</span>
-          </span>
+      <section className="relative flex min-h-full flex-1 flex-col items-center justify-between overflow-hidden px-6 pb-6 pt-4 text-center" aria-label="Today">
+        <div aria-hidden="true" className="home-glow" />
+        <button type="button" onClick={p.onMe} className="relative z-10 flex min-h-11 items-center gap-2 self-stretch text-left">
+          <span className="chip plain" style={{ ['--c' as string]: '#b4b4be' }}>{st.rank}</span>
+          {days > 0 ? <span className="chip plain" style={{ ['--c' as string]: '#fbbf24' }}>{days} day streak</span> : null}
+          <span className="ml-auto font-mono text-xs text-[#8a8a96]">{xp} XP</span>
         </button>
 
-        <section className="panel rounded-xl p-4" aria-label="Today's hunt">
-          <div className="flex items-center justify-between">
-            <span className="eyebrow">Today’s hunt</span>
-            <span className="chip" style={{ ['--c' as string]: done ? '#4ade80' : '#67e8f9' }}>{done ? `Done · ${done.pts}` : 'New'}</span>
-          </div>
-          <h2 className="mt-2 text-xl text-white">{done ? 'Nice work. Come back tomorrow.' : 'Is there a planet in this star?'}</h2>
-          <p className="mt-1 text-[15px] text-[#b4b4be]">{done ? 'Want more? Practise on as many extra puzzles as you like.' : 'One new puzzle a day. Two minutes. Find the repeat, make your call, get scored.'}</p>
-          <button type="button" className="pill-primary mt-3 min-h-12 w-full" onClick={p.onHunt}>{done ? 'Practise more' : 'Play today’s hunt'}</button>
-        </section>
-
-        {p.last ? (
-          <button type="button" onClick={p.onContinue} className="panel flex min-h-16 items-center justify-between gap-3 rounded-xl p-4 text-left" style={{ ['--c' as string]: METHODS[p.last.method].color }}>
-            <span className="min-w-0">
-              <span className="eyebrow block">Continue</span>
-              <span className="block truncate text-[17px] font-semibold text-white">{p.last.name}</span>
-              <span className="block text-xs text-[#8a8a96]">{METHODS[p.last.method].short} method</span>
-            </span>
-            <span aria-hidden="true" className="text-xl text-white">→</span>
-          </button>
-        ) : (
-          <section className="panel rounded-xl p-4" aria-label="Start here">
-            <span className="chip plain !bg-white !text-[#050506] !border-white">Start here</span>
-            <h2 className="mt-2 text-xl text-white">Watch a star dim as a planet crosses it</h2>
-            <p className="mt-1 text-[15px] text-[#b4b4be]">The easiest way to find a planet. You will measure a real one in about ten minutes.</p>
-            <button type="button" className="pill-primary mt-3 min-h-12 w-full" onClick={() => p.onPractice('transit')}>Start the first lab</button>
-          </section>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button" onClick={p.onSky} className="panel min-h-24 rounded-xl p-4 text-left">
-            <span className="block text-[17px] font-semibold text-white">Sky map</span>
-            <span className="mt-1 block text-xs text-[#8a8a96]">Tap a star to see its planets</span>
-          </button>
-          <button type="button" onClick={p.onCatalog} className="panel min-h-24 rounded-xl p-4 text-left">
-            <span className="block text-[17px] font-semibold text-white">All planets</span>
-            <span className="mt-1 block text-xs text-[#8a8a96]">{p.total ? `${p.total.toLocaleString()} known stars with planets` : 'Browse and search'}</span>
-          </button>
+        <div className="relative z-10 flex flex-col items-center">
+          <svg viewBox="0 0 240 200" className="h-48 w-60" role="img" aria-label="A planet crossing in front of a star. The star dims a little as it passes.">
+            <defs>
+              <radialGradient id="hs-star" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#fff7e0" />
+                <stop offset="55%" stopColor="#ffd27a" />
+                <stop offset="100%" stopColor="#ff9f43" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <ellipse cx="120" cy="100" rx="112" ry="26" fill="none" stroke="#ffffff" strokeOpacity="0.12" strokeDasharray="3 5" />
+            <g className="hs-star"><circle cx="120" cy="100" r="78" fill="url(#hs-star)" /><circle cx="120" cy="100" r="42" fill="#ffe9b0" /></g>
+            <circle className="hs-planet" cx="120" cy="100" r="13" fill="#050506" stroke="#67e8f9" strokeWidth="1.5" />
+          </svg>
+          <p className="mt-2 font-heading text-[34px] font-extrabold leading-[1.05] text-white">Catch a hidden planet</p>
+          <p className="mt-3 max-w-[18rem] text-[17px] text-[#b4b4be]">{done ? `You scored ${done.pts} today. A new star arrives tomorrow.` : 'A new star every day. One minute.'}</p>
         </div>
 
+        <div className="relative z-10 mt-8 w-full max-w-sm">
+          <button type="button" className="pill-primary min-h-14 w-full text-base" onClick={p.onHunt}>{done ? 'Practise more' : 'Play today’s hunt'}</button>
+          {p.last ? (
+            <button type="button" onClick={p.onContinue} className="mt-2 min-h-11 w-full text-sm font-semibold text-[#b4b4be]">Continue {p.last.name} →</button>
+          ) : (
+            <p className="mt-2 flex min-h-11 items-center justify-center text-sm text-[#8a8a96]">Swipe up to explore</p>
+          )}
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-3xl px-4 pb-8 pt-6" aria-label="Explore">
+        <div className="eyebrow mb-3">Five ways to find planets</div>
+        <div className="hide-scroll -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1">
+          {(Object.keys(METHODS) as Method[]).map((m) => (
+            <button key={m} type="button" onClick={() => p.onPractice(m)} className="panel w-40 shrink-0 snap-start rounded-xl p-4 text-left" style={{ ['--c' as string]: METHODS[m].color }}>
+              <span aria-hidden="true" className="block h-2 w-2 rounded-full" style={{ background: METHODS[m].color }} />
+              <span className="mt-2 block text-[17px] font-semibold text-white">{METHODS[m].short}</span>
+              <span className="mt-1 line-clamp-3 block text-xs text-[#8a8a96]">{METHODS[m].oneLine}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button type="button" onClick={p.onSky} className="panel min-h-14 rounded-xl px-4 text-left text-[15px] font-semibold text-white">Sky map</button>
+          <button type="button" onClick={p.onCatalog} className="panel min-h-14 rounded-xl px-4 text-left text-[15px] font-semibold text-white">All planets</button>
+        </div>
         {p.status ? (
-          <p className="text-center text-[11px] text-[#8a8a96]" role="status">
+          <p className="mt-4 text-center text-[11px] text-[#8a8a96]" role="status">
             {p.status.source === 'live' ? 'Live from NASA' : p.status.source === 'saved' ? 'Saved NASA copy' : 'Built-in sample of stars'}
             {p.status.error ? ` · NASA could not be reached: ${p.status.error}` : ''}
           </p>
         ) : null}
-      </div>
-      <div className="mt-6">
-        <Learn dash onPractice={p.onPractice} onSky={p.onSky} onCatalog={p.onCatalog} onHunt={p.onHunt} counts={p.counts} total={p.total} status={p.status} />
-      </div>
+      </section>
     </div>
   );
 }
